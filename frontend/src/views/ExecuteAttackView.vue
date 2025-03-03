@@ -182,8 +182,22 @@ export default {
         attacks.value = store.state.attacks
         prompts.value = store.state.prompts
         
-        // Set defaults if available
-        if (attacks.value.length > 0) {
+        // 检查localStorage中是否存在selectedAttackId
+        const selectedAttackId = localStorage.getItem('selectedAttackId')
+        
+        if (selectedAttackId && attacks.value.length > 0) {
+          // 查找对应的攻击
+          const foundAttack = attacks.value.find(attack => attack.id === parseInt(selectedAttackId))
+          if (foundAttack) {
+            selectedAttack.value = foundAttack
+          } else {
+            // 如果找不到对应的攻击，则使用默认值
+            selectedAttack.value = attacks.value[0]
+          }
+          // 使用后清除localStorage中的值，避免影响下次访问
+          localStorage.removeItem('selectedAttackId')
+        } else if (attacks.value.length > 0) {
+          // 如果没有selectedAttackId，则使用默认值
           selectedAttack.value = attacks.value[0]
         }
         

@@ -27,7 +27,7 @@ Then edit the `.env` file with your API keys and configuration.
 python app.py
 ```
 
-The server will start on http://localhost:5000
+The server will start on http://localhost:5001
 
 ## API Endpoints
 

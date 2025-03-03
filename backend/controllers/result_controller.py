@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from models.result import Result
 from models.attack import Attack
 from models.prompt import Prompt
+from database.db_setup import get_db
 
 result_bp = Blueprint('result', __name__)
 
@@ -82,7 +83,7 @@ def get_stats():
     """
     Get statistics about jailbreak success rates
     """
-    db = Result.get_db()
+    db = get_db()
     
     # Get overall stats
     total_results = db.execute('SELECT COUNT(*) as count FROM results').fetchone()['count']

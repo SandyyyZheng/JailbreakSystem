@@ -19,7 +19,7 @@
     </main>
     
     <footer class="app-footer">
-      <p>&copy; {{ new Date().getFullYear() }} Jailbreak System for Large Language Models</p>
+      <p>&copy; {{ new Date().getFullYear() }} Sandy Zheng, Grad Design for HFUT.</p>
     </footer>
   </div>
 </template>

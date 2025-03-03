@@ -78,8 +78,8 @@
           </div>
           
           <div class="col-12 md:col-6">
-            <div class="chart-container">
-              <h3>Success Rate by Attack</h3>
+            <div class="chart-container bar-chart-container">
+              <h3 class="chart-title">Success Rate by Attack</h3>
               <Chart type="bar" :data="barChartData" :options="barChartOptions" />
             </div>
           </div>
@@ -88,17 +88,18 @@
       
       <!-- Algorithm Type Comparison -->
       <div class="card mt-4">
-        <h2>Algorithm Type Comparison</h2>
+        <h2 class="chart-title text-left">Algorithm Type Comparison</h2>
         <div class="grid">
           <div class="col-12 md:col-6">
-            <div class="chart-container">
+            <div class="chart-container pie-chart-container bg-light-gray">
+              <h3 class="chart-title text-center">Tests by Algorithm Type</h3>
               <Chart type="pie" :data="pieChartData" :options="pieChartOptions" />
             </div>
           </div>
           
           <div class="col-12 md:col-6">
-            <div class="chart-container">
-              <h3>Average Success Rating by Algorithm Type</h3>
+            <div class="chart-container radar-chart-container bg-light-gray">
+              <h3 class="chart-title text-center">Average Success Rating by Algorithm Type</h3>
               <Chart type="radar" :data="radarChartData" :options="radarChartOptions" />
             </div>
           </div>
@@ -259,10 +260,10 @@ export default {
     const pieChartOptions = {
       plugins: {
         legend: {
-          position: 'right'
+          position: 'bottom'
         },
         title: {
-          display: true,
+          display: false,
           text: 'Tests by Algorithm Type'
         }
       }
@@ -449,6 +450,7 @@ export default {
   margin-top: 0;
   margin-bottom: 1rem;
   font-size: 1.25rem;
+  text-align: center;
 }
 
 .mt-4 {
@@ -456,8 +458,33 @@ export default {
 }
 
 .chart-container {
-  height: 300px;
   position: relative;
+}
+
+.bar-chart-container {
+  height: 300px;
+  width: 100%;
+}
+
+.pie-chart-container {
+  height: 500px;
+  width: 85%;
+}
+
+.radar-chart-container {
+  height: 500px;
+  width: 100%;
+}
+
+.chart-title {
+  font-size: 1.25rem;
+  text-align: center;
+}
+
+.bg-light-gray {
+  background-color: #f0f0f0;
+  padding: 1rem;
+  border-radius: 5px;
 }
 
 .success-rate-bar {

@@ -8,14 +8,14 @@
       <div class="col-12 md:col-6 lg:col-3">
         <div class="stats-card">
           <div class="stats-value">{{ attackCount }}</div>
-          <div class="stats-label">Jailbreak Attacks</div>
+          <div class="stats-label">Attack Methods</div>
         </div>
       </div>
       
       <div class="col-12 md:col-6 lg:col-3">
         <div class="stats-card">
           <div class="stats-value">{{ promptCount }}</div>
-          <div class="stats-label">Test Prompts</div>
+          <div class="stats-label">Original Prompts</div>
         </div>
       </div>
       

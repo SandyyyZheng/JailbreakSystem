@@ -6,13 +6,15 @@
     </div>
     
     <div class="card">
-      <div class="p-d-flex p-jc-between p-mb-3">
-        <div class="p-input-icon-left">
-          <i class="pi pi-search" />
-          <InputText v-model="filters.global" placeholder="Search results..." />
+      <div class="filter-container">
+        <div class="search-container">
+          <InputText v-model="filters.global.value" placeholder="Search by prompt..." class="search-input" />
+          <i class="pi pi-search search-icon"></i>
         </div>
-        <Dropdown v-model="selectedAttack" :options="attacks" optionLabel="name" 
-                  placeholder="Filter by attack" class="p-ml-2" @change="filterByAttack" />
+        <div class="filter-dropdown">
+          <Dropdown v-model="selectedAttack" :options="attacks" optionLabel="name" 
+                    placeholder="Filter by attack" @change="filterByAttack" />
+        </div>
       </div>
       
       <DataTable :value="results" :paginator="true" :rows="10" 
@@ -330,6 +332,35 @@ export default {
   margin-bottom: 1.5rem;
 }
 
+.filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-input {
+  width: 100%;
+  padding-right: 2.5rem;
+}
+
+.search-icon {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+.filter-dropdown {
+  width: 100%;
+}
+
 .truncated-text {
   max-width: 300px;
   white-space: nowrap;
@@ -381,5 +412,20 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+@media screen and (min-width: 768px) {
+  .filter-container {
+    flex-direction: row;
+    align-items: center;
+  }
+  
+  .search-container, .filter-dropdown {
+    width: auto;
+  }
+  
+  .filter-dropdown {
+    min-width: 200px;
+  }
 }
 </style> 

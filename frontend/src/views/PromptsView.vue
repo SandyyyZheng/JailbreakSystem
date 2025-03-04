@@ -6,20 +6,22 @@
     </div>
     
     <div class="card">
-      <div class="p-d-flex p-jc-between p-mb-3">
-        <div class="p-input-icon-left">
-          <i class="pi pi-search" />
-          <InputText v-model="filters.global" placeholder="Search prompts..." />
+      <div class="filter-container">
+        <div class="search-container">
+          <InputText v-model="filters.global.value" placeholder="Search by content..." class="search-input" />
+          <i class="pi pi-search search-icon"></i>
         </div>
-        <Dropdown v-model="selectedCategory" :options="categories" optionLabel="name" 
-                  placeholder="Filter by category" class="p-ml-2" @change="filterByCategory" />
+        <div class="filter-dropdown">
+          <Dropdown v-model="selectedCategory" :options="categories" optionLabel="name" 
+                    placeholder="Filter by category" @change="filterByCategory" />
+        </div>
       </div>
       
-      <DataTable :value="prompts" :paginator="true" :rows="10" 
+      <DataTable :value="filteredPrompts" :paginator="true" :rows="10" 
                  :loading="loading" responsiveLayout="scroll"
                  :filters="filters" filterDisplay="menu"
                  v-model:selection="selectedPrompts"
-                 :globalFilterFields="['content', 'category']">
+                 :globalFilterFields="['content']">
         <template #empty>
           <div class="p-text-center">No prompts found.</div>
         </template>
@@ -114,7 +116,7 @@
 </template>
 
 <script>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, computed } from 'vue';
 import { useStore } from 'vuex';
 import { FilterMatchMode } from 'primevue/api';
 import { useToast } from 'primevue/usetoast';
@@ -147,6 +149,15 @@ export default {
     
     // Computed
     const dialogTitle = ref('');
+    
+    // 添加计算属性来处理筛选
+    const filteredPrompts = computed(() => {
+      if (!selectedCategory.value || selectedCategory.value.name === 'All') {
+        return prompts.value;
+      } else {
+        return prompts.value.filter(p => p.category === selectedCategory.value.name);
+      }
+    });
     
     // Methods
     const fetchPrompts = async () => {
@@ -308,11 +319,8 @@ export default {
     };
     
     const filterByCategory = () => {
-      if (selectedCategory.value && selectedCategory.value.name !== 'All') {
-        store.dispatch('fetchPrompts', selectedCategory.value.name);
-      } else {
-        store.dispatch('fetchPrompts');
-      }
+      // 不需要向后端发送请求，使用计算属性在前端进行筛选
+      // 保留此函数以便在需要时添加额外逻辑
     };
     
     const addCategory = () => {
@@ -341,6 +349,7 @@ export default {
     
     return {
       prompts,
+      filteredPrompts,
       prompt,
       selectedPrompts,
       promptDialog,
@@ -383,6 +392,35 @@ export default {
   margin-bottom: 1.5rem;
 }
 
+.filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-input {
+  width: 100%;
+  padding-right: 2.5rem;
+}
+
+.search-icon {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+.filter-dropdown {
+  width: 100%;
+}
+
 .prompt-content {
   max-width: 400px;
   white-space: nowrap;
@@ -398,5 +436,20 @@ export default {
 
 .p-dialog .p-dialog-content {
   padding: 2rem;
+}
+
+@media screen and (min-width: 768px) {
+  .filter-container {
+    flex-direction: row;
+    align-items: center;
+  }
+  
+  .search-container, .filter-dropdown {
+    width: auto;
+  }
+  
+  .filter-dropdown {
+    min-width: 200px;
+  }
 }
 </style> 

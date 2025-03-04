@@ -462,17 +462,17 @@ export default {
 }
 
 .bar-chart-container {
-  height: 300px;
+  height: 400px;
   width: 100%;
 }
 
 .pie-chart-container {
-  height: 500px;
+  height: 550px;
   width: 85%;
 }
 
 .radar-chart-container {
-  height: 500px;
+  height: 550px;
   width: 100%;
 }
 

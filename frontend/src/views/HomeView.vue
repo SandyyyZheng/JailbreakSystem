@@ -79,10 +79,10 @@
             <div v-else>
               <DataTable :value="recentResults" responsiveLayout="scroll" class="p-datatable-sm">
                 <Column field="attack_name" header="Attack"></Column>
-                <Column field="success_rating" header="Success">
+                <Column field="success_rating" header="Harmful Score">
                   <template #body="slotProps">
                     <div v-if="slotProps.data.success_rating">
-                      {{ slotProps.data.success_rating }}/10
+                      {{ slotProps.data.success_rating }}/5
                     </div>
                     <div v-else>
                       N/A
@@ -125,7 +125,7 @@ export default {
     const successRate = computed(() => {
       if (store.state.results.length === 0) return 0
       
-      const successfulResults = store.state.results.filter(result => result.success_rating > 7).length
+      const successfulResults = store.state.results.filter(result => result.success_rating > 3).length
       return Math.round((successfulResults / store.state.results.length) * 100)
     })
     

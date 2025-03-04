@@ -10,7 +10,7 @@ from controllers.result_controller import result_bp
 # Initialize Flask app
 app = Flask(__name__)
 # 修改CORS配置，明确指定允许的源
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:8080", "http://localhost:8081", "http://192.168.10.239:8081"]}}, supports_credentials=True)
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:8080", "http://localhost:8081", "http://192.168.10.239:8081", "http://192.168.43.82:8080"]}}, supports_credentials=True)
 
 # Configuration
 app.config['DATABASE'] = os.path.join(os.path.dirname(__file__), 'database', 'jailbreak.db')
@@ -32,10 +32,12 @@ def index():
 # 添加一个全局的after_request处理器来设置CORS头
 @app.after_request
 def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'http://192.168.10.239:8081')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    origin = request.headers.get('Origin')
+    if origin in ["http://localhost:8080", "http://localhost:8081", "http://192.168.10.239:8081", "http://192.168.43.82:8080"]:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
 if __name__ == '__main__':

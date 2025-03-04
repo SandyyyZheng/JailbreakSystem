@@ -64,19 +64,14 @@
               <Column field="name" header="Attack Name"></Column>
               <Column field="algorithm_type" header="Type"></Column>
               <Column field="total_attempts" header="Tests"></Column>
-              <Column field="avg_harmful_score" header="Avg. HS">
+              <Column field="avg_harmful_score" header="Avg. HS" style="width: 100px">
                 <template #body="slotProps">
                   {{ formatRating(slotProps.data.avg_harmful_score) }}
                 </template>
               </Column>
-              <Column header="ASR">
+              <Column header="ASR (%)" style="width: 100px">
                 <template #body="slotProps">
-                  <div class="success-rate-bar">
-                    <div class="success-rate-fill" 
-                         :style="{ width: calculateAttackSuccessRate(slotProps.data) + '%' }">
-                      {{ formatPercentage(calculateAttackSuccessRate(slotProps.data) / 100) }}
-                    </div>
-                  </div>
+                  {{ (calculateAttackSuccessRate(slotProps.data)).toFixed(1) }}
                 </template>
               </Column>
             </DataTable>

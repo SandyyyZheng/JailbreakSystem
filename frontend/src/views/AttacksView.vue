@@ -7,19 +7,32 @@
     
     <Card>
       <template #content>
+        <div class="filter-container">
+          <div class="search-container">
+            <InputText v-model="filters.global.value" placeholder="Search by name..." class="search-input" />
+            <i class="pi pi-search search-icon"></i>
+          </div>
+          <div class="filter-dropdown">
+            <Dropdown v-model="selectedAlgorithmType" :options="algorithmTypeOptions" optionLabel="name" 
+                      placeholder="Filter by algorithm type" @change="filterByAlgorithmType" />
+          </div>
+        </div>
+        
         <div v-if="loading" class="loading-container">
           <ProgressSpinner />
         </div>
         
-        <div v-else-if="attacks.length === 0" class="text-center p-4">
+        <div v-else-if="filteredAttacks.length === 0" class="text-center p-4">
           <p>No attacks found. Create your first jailbreak attack!</p>
         </div>
         
         <div v-else>
-          <DataTable :value="attacks" responsiveLayout="scroll" stripedRows 
-                    :paginator="attacks.length > 10" :rows="10" 
+          <DataTable :value="filteredAttacks" responsiveLayout="scroll" stripedRows 
+                    :paginator="filteredAttacks.length > 10" :rows="10" 
                     paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
-                    :rowsPerPageOptions="[5, 10, 20]">
+                    :rowsPerPageOptions="[5, 10, 20]"
+                    :filters="filters" filterDisplay="menu"
+                    :globalFilterFields="['name']">
             <Column field="name" header="Name" sortable></Column>
             <Column field="algorithm_type" header="Algorithm Type" sortable></Column>
             <Column field="description" header="Description">
@@ -119,6 +132,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
+import { FilterMatchMode } from 'primevue/api'
 
 export default {
   name: 'AttacksView',
@@ -135,6 +149,12 @@ export default {
     const deleteDialog = ref(false)
     const submitted = ref(false)
     const editMode = ref(false)
+    const selectedAlgorithmType = ref(null)
+    
+    // Filters
+    const filters = reactive({
+      global: { value: null, matchMode: FilterMatchMode.CONTAINS }
+    })
     
     // Form data
     const attack = reactive({
@@ -152,6 +172,23 @@ export default {
       { name: 'Token Limit', value: 'token_limit' },
       { name: 'JSON Injection', value: 'json_injection' }
     ]
+    
+    // Algorithm type options for filtering (with "All" option)
+    const algorithmTypeOptions = computed(() => {
+      return [
+        { name: 'All Types', value: null },
+        ...algorithmTypes
+      ]
+    })
+    
+    // Filtered attacks based on selected algorithm type
+    const filteredAttacks = computed(() => {
+      if (!selectedAlgorithmType.value || selectedAlgorithmType.value.value === null) {
+        return attacks.value
+      } else {
+        return attacks.value.filter(a => a.algorithm_type === selectedAlgorithmType.value.value)
+      }
+    })
     
     // Template types
     const templateTypes = [
@@ -189,6 +226,10 @@ export default {
       } finally {
         loading.value = false
       }
+    }
+    
+    const filterByAlgorithmType = () => {
+      // 使用计算属性在前端进行筛选，不需要额外操作
     }
     
     const openNewAttackDialog = () => {
@@ -336,12 +377,16 @@ export default {
     return {
       loading,
       attacks,
+      filteredAttacks,
       attack,
       attackDialog,
       deleteDialog,
       submitted,
       editMode,
+      filters,
       algorithmTypes,
+      algorithmTypeOptions,
+      selectedAlgorithmType,
       templateTypes,
       languages,
       openNewAttackDialog,
@@ -350,7 +395,8 @@ export default {
       executeAttack,
       closeDialog,
       saveAttack,
-      deleteAttack
+      deleteAttack,
+      filterByAlgorithmType
     }
   }
 }
@@ -359,6 +405,35 @@ export default {
 <style scoped>
 .attacks-view {
   padding: 20px;
+}
+
+.filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-input {
+  width: 100%;
+  padding-right: 2.5rem;
+}
+
+.search-icon {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+.filter-dropdown {
+  width: 100%;
 }
 
 .description-cell {
@@ -376,5 +451,26 @@ export default {
 .confirmation-content {
   display: flex;
   align-items: center;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+@media screen and (min-width: 768px) {
+  .filter-container {
+    flex-direction: row;
+    align-items: center;
+  }
+  
+  .search-container, .filter-dropdown {
+    width: auto;
+  }
+  
+  .filter-dropdown {
+    min-width: 200px;
+  }
 }
 </style> 

@@ -340,6 +340,12 @@ export default {
           suggestedMin: 0,
           suggestedMax: 5
         }
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          align: 'center'
+        }
       }
     };
     
@@ -467,13 +473,13 @@ export default {
 }
 
 .pie-chart-container {
-  height: 550px;
+  height: 500px;
   width: 85%;
 }
 
 .radar-chart-container {
-  height: 550px;
-  width: 100%;
+  height: 500px;
+  width: 85%;
 }
 
 .chart-title {

@@ -30,7 +30,7 @@
               <i class="pi pi-check-circle"></i>
             </div>
             <div class="stats-content">
-              <div class="stats-value">{{ stats.successful_results || 0 }}</div>
+              <div class="stats-value">{{ stats.harmful_results || 0 }}</div>
               <div class="stats-label">Successful Jailbreaks</div>
             </div>
           </div>
@@ -42,8 +42,8 @@
               <i class="pi pi-percentage"></i>
             </div>
             <div class="stats-content">
-              <div class="stats-value">{{ formatPercentage(stats.success_rate || 0) }}</div>
-              <div class="stats-label">Success Rate</div>
+              <div class="stats-value">{{ formatPercentage(stats.harmful_rate || 0) }}</div>
+              <div class="stats-label">Attack Success Rate</div>
             </div>
           </div>
         </div>
@@ -54,22 +54,27 @@
         <h2>Attack Performance</h2>
         <div class="grid">
           <div class="col-12 md:col-6">
-            <DataTable :value="stats.attack_stats || []" responsiveLayout="scroll" class="p-datatable-sm">
+            <DataTable :value="stats.attack_stats || []" 
+                      responsiveLayout="scroll" 
+                      class="p-datatable-sm"
+                      :scrollable="true"
+                      scrollHeight="300px"
+                      :rows="5"
+                      :rowsPerPageOptions="[5, 10, 20]">
               <Column field="name" header="Attack Name"></Column>
               <Column field="algorithm_type" header="Type"></Column>
               <Column field="total_attempts" header="Tests"></Column>
-              <Column field="successful_attempts" header="Successful"></Column>
-              <Column field="avg_success_rating" header="Avg. Rating">
+              <Column field="avg_harmful_score" header="Avg. Harmful">
                 <template #body="slotProps">
-                  {{ formatRating(slotProps.data.avg_success_rating) }}
+                  {{ formatRating(slotProps.data.avg_harmful_score) }}
                 </template>
               </Column>
-              <Column header="Success Rate">
+              <Column header="Attack Success Rate">
                 <template #body="slotProps">
                   <div class="success-rate-bar">
                     <div class="success-rate-fill" 
-                         :style="{ width: calculateSuccessRate(slotProps.data) + '%' }">
-                      {{ formatPercentage(calculateSuccessRate(slotProps.data) / 100) }}
+                         :style="{ width: calculateAttackSuccessRate(slotProps.data) + '%' }">
+                      {{ formatPercentage(calculateAttackSuccessRate(slotProps.data) / 100) }}
                     </div>
                   </div>
                 </template>
@@ -79,7 +84,7 @@
           
           <div class="col-12 md:col-6">
             <div class="chart-container bar-chart-container">
-              <h3 class="chart-title">Success Rate by Attack</h3>
+              <h3 class="chart-title">Attack Success Rate by Attack</h3>
               <Chart type="bar" :data="barChartData" :options="barChartOptions" />
             </div>
           </div>
@@ -99,7 +104,7 @@
           
           <div class="col-12 md:col-6">
             <div class="chart-container radar-chart-container bg-light-gray">
-              <h3 class="chart-title text-center">Average Success Rating by Algorithm Type</h3>
+              <h3 class="chart-title text-center">Average Harmful Score by Algorithm Type</h3>
               <Chart type="radar" :data="radarChartData" :options="radarChartOptions" />
             </div>
           </div>
@@ -138,8 +143,8 @@ export default {
         } else {
           stats.value = {
             total_results: 0,
-            successful_results: 0,
-            success_rate: 0,
+            harmful_results: 0,
+            harmful_rate: 0,
             attack_stats: []
           };
         }
@@ -147,8 +152,8 @@ export default {
         console.error('Error fetching statistics:', error);
         stats.value = {
           total_results: 0,
-          successful_results: 0,
-          success_rate: 0,
+          harmful_results: 0,
+          harmful_rate: 0,
           attack_stats: []
         };
       } finally {
@@ -164,29 +169,29 @@ export default {
       return value ? value.toFixed(1) : 'N/A';
     };
     
-    const calculateSuccessRate = (attack) => {
+    const calculateAttackSuccessRate = (attack) => {
       if (!attack || !attack.total_attempts) return 0;
-      return (attack.successful_attempts / attack.total_attempts) * 100;
+      return (attack.harmful_attempts / attack.total_attempts) * 100;
     };
     
     // Chart data
     const barChartData = computed(() => {
       if (!stats.value || !stats.value.attack_stats) {
-        return { labels: [], datasets: [{ label: 'Success Rate (%)', backgroundColor: '#4f46e5', data: [] }] };
+        return { labels: [], datasets: [{ label: 'Attack Success Rate (%)', backgroundColor: '#4f46e5', data: [] }] };
       }
       
       const labels = stats.value.attack_stats.map(attack => attack.name);
-      const successRates = stats.value.attack_stats.map(attack => 
-        calculateSuccessRate(attack)
+      const harmfulRates = stats.value.attack_stats.map(attack => 
+        calculateAttackSuccessRate(attack)
       );
       
       return {
         labels: labels,
         datasets: [
           {
-            label: 'Success Rate (%)',
+            label: 'Attack Success Rate (%)',
             backgroundColor: '#4f46e5',
-            data: successRates
+            data: harmfulRates
           }
         ]
       };
@@ -199,7 +204,7 @@ export default {
           max: 100,
           title: {
             display: true,
-            text: 'Success Rate (%)'
+            text: 'Attack Success Rate (%)'
           }
         }
       },
@@ -274,7 +279,7 @@ export default {
         return { 
           labels: [], 
           datasets: [{ 
-            label: 'Avg. Success Rating',
+            label: 'Avg. Harmful Score',
             data: [],
             backgroundColor: 'rgba(79, 70, 229, 0.2)',
             borderColor: '#4f46e5',
@@ -297,8 +302,8 @@ export default {
           };
         }
         
-        if (attack.avg_success_rating) {
-          algorithmTypes[attack.algorithm_type].total += attack.avg_success_rating;
+        if (attack.avg_harmful_score) {
+          algorithmTypes[attack.algorithm_type].total += attack.avg_harmful_score;
           algorithmTypes[attack.algorithm_type].count += 1;
         }
       });
@@ -318,7 +323,7 @@ export default {
         labels: labels,
         datasets: [
           {
-            label: 'Avg. Success Rating',
+            label: 'Avg. Harmful Score',
             data: data,
             backgroundColor: 'rgba(79, 70, 229, 0.2)',
             borderColor: '#4f46e5',
@@ -338,7 +343,7 @@ export default {
             display: true
           },
           suggestedMin: 0,
-          suggestedMax: 10
+          suggestedMax: 5
         }
       }
     };
@@ -353,7 +358,7 @@ export default {
       loading,
       formatPercentage,
       formatRating,
-      calculateSuccessRate,
+      calculateAttackSuccessRate,
       barChartData,
       barChartOptions,
       pieChartData,
@@ -462,7 +467,7 @@ export default {
 }
 
 .bar-chart-container {
-  height: 400px;
+  height: 300px;
   width: 100%;
 }
 

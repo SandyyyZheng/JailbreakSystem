@@ -35,11 +35,11 @@
             <div class="truncated-text">{{ slotProps.data.original_prompt }}</div>
           </template>
         </Column>
-        <Column field="success_rating" header="Success" sortable style="width: 8rem">
+        <Column field="success_rating" header="Harmful" sortable style="width: 8rem">
           <template #body="slotProps">
             <div v-if="slotProps.data.success_rating !== null">
-              <Rating v-model="slotProps.data.success_rating" :readonly="true" :cancel="false" />
-              <span class="ml-2">{{ slotProps.data.success_rating }}/10</span>
+              <Rating v-model="slotProps.data.success_rating" :readonly="true" :cancel="false" :stars="5" />
+              <span class="ml-2">{{ slotProps.data.success_rating }}/5</span>
             </div>
             <div v-else>Not rated</div>
           </template>
@@ -73,10 +73,10 @@
                 <span class="detail-value">{{ selectedResult.attack_name }}</span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">Success Rating:</span>
+                <span class="detail-label">Harmful Score:</span>
                 <span class="detail-value">
-                  <Rating v-model="selectedResult.success_rating" :readonly="true" :cancel="false" />
-                  {{ selectedResult.success_rating }}/10
+                  <Rating v-model="selectedResult.success_rating" :readonly="true" :cancel="false" :stars="5" />
+                  {{ selectedResult.success_rating }}/5
                 </span>
               </div>
               <div class="detail-item">
@@ -88,12 +88,25 @@
           
           <div class="col-12 md:col-6">
             <div class="detail-section">
-              <h3>Edit Rating</h3>
+              <h3>Edit Harmful Score</h3>
               <div class="p-field">
-                <label for="rating">Success Rating (1-10)</label>
-                <div class="p-inputgroup">
-                  <Rating v-model="editedRating" :cancel="false" />
-                  <Button label="Update" icon="pi pi-check" @click="updateRating" />
+                <label for="rating">Harmful Score (1-5)</label>
+                <div class="p-inputgroup mb-3">
+                  <Rating v-model="editedRating" :cancel="false" :stars="5" />
+                  <span class="ml-2">{{ editedRating }}/5</span>
+                </div>
+                <div class="p-field-slider mb-3">
+                  <label>Adjust Score:</label>
+                  <Slider v-model="editedRating" :min="1" :max="5" :step="1" class="w-full" />
+                </div>
+                <div class="p-field-numeric mb-3">
+                  <label>Or enter score directly (1-5):</label>
+                  <div class="p-inputgroup">
+                    <InputText v-model.number="editedRating" type="number" min="1" max="5" />
+                  </div>
+                </div>
+                <div class="mt-3">
+                  <Button label="Update" icon="pi pi-check" class="p-button-primary" @click="updateRating" />
                 </div>
               </div>
             </div>
@@ -198,7 +211,7 @@ export default {
     
     const viewResult = (result) => {
       selectedResult.value = { ...result };
-      editedRating.value = result.success_rating || 5;
+      editedRating.value = result.success_rating ? Math.min(Math.max(parseInt(result.success_rating), 1), 5) : 5;
       resultDetailDialog.value = true;
     };
     
@@ -233,26 +246,32 @@ export default {
     
     const updateRating = async () => {
       try {
-        await store.dispatch('updateResult', {
+        // 确保评分在1-5的范围内
+        const validRating = Math.min(Math.max(parseInt(editedRating.value) || 5, 1), 5);
+        editedRating.value = validRating;
+        
+        const updatedResult = await store.dispatch('updateResult', {
           resultId: selectedResult.value.id,
           resultData: {
-            success_rating: editedRating.value
+            success_rating: validRating
           }
         });
         
+        console.log('Updated result from server:', updatedResult);
+        
         // Update the displayed rating
-        selectedResult.value.success_rating = editedRating.value;
+        selectedResult.value.success_rating = validRating;
         
         // Also update in the results list
         const index = results.value.findIndex(r => r.id === selectedResult.value.id);
         if (index !== -1) {
-          results.value[index].success_rating = editedRating.value;
+          results.value[index].success_rating = validRating;
         }
         
         toast.add({
           severity: 'success',
           summary: 'Success',
-          detail: 'Rating updated',
+          detail: 'Score updated',
           life: 3000
         });
       } catch (error) {
@@ -260,7 +279,7 @@ export default {
         toast.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Failed to update rating',
+          detail: 'Failed to update score',
           life: 3000
         });
       }

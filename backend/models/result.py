@@ -70,15 +70,33 @@ class Result:
         if not result:
             return False
         
+        # 打印日志以便调试
+        print(f"Current result: {result}")
+        print(f"Updating with model_response: {model_response}, success_rating: {success_rating}")
+        
         # Update with new values or keep existing ones
         model_response = model_response if model_response is not None else result['model_response']
         success_rating = success_rating if success_rating is not None else result['success_rating']
+        
+        # 确保success_rating是整数或浮点数，且在1-5的范围内
+        if success_rating is not None:
+            try:
+                success_rating = float(success_rating)
+                # 限制在1-5的范围内
+                success_rating = min(max(success_rating, 1), 5)
+            except (ValueError, TypeError):
+                print(f"Warning: Invalid success_rating value: {success_rating}")
+                success_rating = result['success_rating']
         
         db.execute(
             'UPDATE results SET model_response = ?, success_rating = ? WHERE id = ?',
             (model_response, success_rating, result_id)
         )
         db.commit()
+        
+        # 打印更新后的结果
+        updated_result = Result.get_by_id(result_id)
+        print(f"Updated result: {updated_result}")
         
         return True
     

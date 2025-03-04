@@ -302,8 +302,9 @@ export default createStore({
     async updateResult({ commit }, { resultId, resultData }) {
       commit('SET_LOADING', true)
       try {
-        await axios.put(`${API_URL}/results/${resultId}`, resultData)
-        const updatedResult = { ...resultData, id: resultId }
+        const response = await axios.put(`${API_URL}/results/${resultId}`, resultData)
+        const currentResult = await axios.get(`${API_URL}/results/${resultId}`)
+        const updatedResult = { ...currentResult.data, ...resultData }
         commit('UPDATE_RESULT', updatedResult)
         return updatedResult
       } catch (error) {

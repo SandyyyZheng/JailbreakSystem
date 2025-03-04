@@ -20,6 +20,8 @@ import Divider from 'primevue/divider'
 import TabView from 'primevue/tabview'
 import TabPanel from 'primevue/tabpanel'
 import Chart from 'primevue/chart'
+import Slider from 'primevue/slider'
+import Rating from 'primevue/rating'
 
 // PrimeVue styles
 import 'primevue/resources/themes/saga-blue/theme.css'
@@ -53,5 +55,7 @@ app.component('Divider', Divider)
 app.component('TabView', TabView)
 app.component('TabPanel', TabPanel)
 app.component('Chart', Chart)
+app.component('Slider', Slider)
+app.component('Rating', Rating)
 
 app.mount('#app') 

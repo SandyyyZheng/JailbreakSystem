@@ -35,7 +35,7 @@
             <div class="truncated-text">{{ slotProps.data.original_prompt }}</div>
           </template>
         </Column>
-        <Column field="success_rating" header="Harmful" sortable style="width: 8rem">
+        <Column field="success_rating" header="Harmful Score" sortable style="width: 8rem">
           <template #body="slotProps">
             <div v-if="slotProps.data.success_rating !== null">
               <Rating v-model="slotProps.data.success_rating" :readonly="true" :cancel="false" :stars="5" />

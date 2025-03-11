@@ -95,7 +95,7 @@
                     <div class="prompt-preview">{{ slotProps.data.original_prompt }}</div>
                   </template>
                 </Column>
-                <Column field="success_rating" header="Score" style="width: 100px">
+                <Column field="success_rating" header="Harmful Score" style="width: 100px">
                   <template #body="slotProps">
                     <Rating v-model="slotProps.data.success_rating" :stars="5" :readonly="true" :cancel="false" />
                   </template>

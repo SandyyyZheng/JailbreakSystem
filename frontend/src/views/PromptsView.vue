@@ -2,7 +2,10 @@
   <div class="prompts-view">
     <div class="page-title">
       <h1>Prompts Management</h1>
-      <Button label="Add New Prompt" icon="pi pi-plus" @click="openNewPromptDialog" />
+      <div class="button-group">
+        <Button label="Import CSV" icon="pi pi-upload" class="p-button-secondary mr-2" @click="openImportDialog" />
+        <Button label="Add New Prompt" icon="pi pi-plus" @click="openNewPromptDialog" />
+      </div>
     </div>
     
     <div class="card">
@@ -111,6 +114,38 @@
       </template>
     </Dialog>
     
+    <!-- Dialog for importing CSV -->
+    <Dialog v-model:visible="importDialog" header="Import Prompts from CSV" :style="{width: '500px'}" 
+            :modal="true" class="p-fluid">
+      <div class="p-field">
+        <label for="csvFile">Select CSV File</label>
+        <div class="p-inputgroup">
+          <input type="file" ref="fileInput" accept=".csv" @change="handleFileSelect" style="display: none" />
+          <InputText :value="selectedFileName" readonly placeholder="Choose a CSV file" />
+          <Button icon="pi pi-upload" @click="triggerFileInput" />
+        </div>
+      </div>
+
+      <div class="p-field" v-if="csvHeaders.length > 0">
+        <label for="columnSelect">Select Column to Import</label>
+        <Dropdown id="columnSelect" v-model="selectedColumn" :options="csvHeaders" 
+                  placeholder="Select a column" class="w-full" />
+      </div>
+
+      <div class="p-field" v-if="csvHeaders.length > 0">
+        <label for="datasetName">Dataset Name</label>
+        <InputText id="datasetName" v-model="datasetName" placeholder="e.g., AdvBench" 
+                   :class="{'p-invalid': submitted && !datasetName}" />
+        <small class="p-error" v-if="submitted && !datasetName">Dataset name is required.</small>
+      </div>
+
+      <template #footer>
+        <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="hideImportDialog" />
+        <Button label="Import" icon="pi pi-check" class="p-button-text" @click="importPrompts" 
+                :disabled="!canImport" />
+      </template>
+    </Dialog>
+    
     <Toast />
   </div>
 </template>
@@ -120,6 +155,7 @@ import { ref, onMounted, reactive, computed } from 'vue';
 import { useStore } from 'vuex';
 import { FilterMatchMode } from 'primevue/api';
 import { useToast } from 'primevue/usetoast';
+import Papa from 'papaparse';
 
 export default {
   name: 'PromptsView',
@@ -127,6 +163,7 @@ export default {
   setup() {
     const store = useStore();
     const toast = useToast();
+    const fileInput = ref(null);
     
     // Data
     const prompts = ref([]);
@@ -141,6 +178,12 @@ export default {
     const selectedCategory = ref(null);
     const showCategoryInput = ref(false);
     const newCategory = ref('');
+    const importDialog = ref(false);
+    const selectedFileName = ref('');
+    const csvHeaders = ref([]);
+    const selectedColumn = ref(null);
+    const datasetName = ref('');
+    const csvData = ref(null);
     
     // Filters
     const filters = reactive({
@@ -149,6 +192,9 @@ export default {
     
     // Computed
     const dialogTitle = ref('');
+    const canImport = computed(() => {
+      return selectedFileName.value && selectedColumn.value && datasetName.value;
+    });
     
     // 添加计算属性来处理筛选
     const filteredPrompts = computed(() => {
@@ -342,6 +388,92 @@ export default {
       }).format(date);
     };
     
+    const openImportDialog = () => {
+      importDialog.value = true;
+      selectedFileName.value = '';
+      csvHeaders.value = [];
+      selectedColumn.value = null;
+      datasetName.value = '';
+      csvData.value = null;
+      submitted.value = false;
+    };
+    
+    const hideImportDialog = () => {
+      importDialog.value = false;
+      selectedFileName.value = '';
+      csvHeaders.value = [];
+      selectedColumn.value = null;
+      datasetName.value = '';
+      csvData.value = null;
+      submitted.value = false;
+    };
+    
+    const handleFileSelect = (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        selectedFileName.value = file.name;
+        Papa.parse(file, {
+          complete: (results) => {
+            if (results.data && results.data.length > 0) {
+              csvHeaders.value = results.data[0].map(header => ({
+                name: header,
+                value: header
+              }));
+              csvData.value = results.data.slice(1);
+            }
+          },
+          header: false,
+          skipEmptyLines: true
+        });
+      }
+    };
+    
+    const triggerFileInput = () => {
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) {
+        fileInput.click();
+      }
+    };
+    
+    const importPrompts = async () => {
+      submitted.value = true;
+
+      if (!canImport.value) {
+        return;
+      }
+
+      try {
+        const prompts = csvData.value
+          .filter(row => row[csvHeaders.value.findIndex(h => h.value === selectedColumn.value.value)])
+          .map(row => ({
+            content: row[csvHeaders.value.findIndex(h => h.value === selectedColumn.value.value)],
+            category: datasetName.value
+          }));
+
+        for (const prompt of prompts) {
+          await store.dispatch('createPrompt', prompt);
+        }
+
+        toast.add({
+          severity: 'success',
+          summary: '导入成功',
+          detail: `成功导入 ${prompts.length} 条数据到数据集 "${datasetName.value}"`,
+          life: 3000
+        });
+
+        hideImportDialog();
+        await fetchPrompts();
+      } catch (error) {
+        console.error('Error importing prompts:', error);
+        toast.add({
+          severity: 'error',
+          summary: '导入失败',
+          detail: '导入数据时发生错误',
+          life: 3000
+        });
+      }
+    };
+    
     // Lifecycle hooks
     onMounted(() => {
       fetchPrompts();
@@ -374,7 +506,18 @@ export default {
       deleteSelectedPrompts,
       filterByCategory,
       addCategory,
-      formatDate
+      formatDate,
+      importDialog,
+      hideImportDialog,
+      selectedFileName,
+      csvHeaders,
+      selectedColumn,
+      datasetName,
+      canImport,
+      openImportDialog,
+      handleFileSelect,
+      triggerFileInput,
+      importPrompts
     };
   }
 }
@@ -390,6 +533,11 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+}
+
+.button-group {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .filter-container {
@@ -436,6 +584,25 @@ export default {
 
 .p-dialog .p-dialog-content {
   padding: 2rem;
+}
+
+.p-field {
+  margin-bottom: 1.5rem;
+}
+
+.p-field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.p-inputgroup {
+  display: flex;
+  align-items: center;
+}
+
+.p-inputgroup .p-button {
+  margin-left: -1px;
 }
 
 @media screen and (min-width: 768px) {

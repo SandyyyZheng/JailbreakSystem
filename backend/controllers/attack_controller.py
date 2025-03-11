@@ -60,6 +60,39 @@ def delete_attack(attack_id):
     
     return jsonify({"message": "Attack deleted successfully"})
 
+@attack_bp.route('/batch-delete', methods=['POST'])
+def batch_delete_attacks():
+    data = request.get_json()
+    
+    if not data or 'attack_ids' not in data or not isinstance(data['attack_ids'], list):
+        return jsonify({"error": "Attack IDs list is required"}), 400
+    
+    attack_ids = data.get('attack_ids')
+    
+    if not attack_ids:
+        return jsonify({"error": "No attack IDs provided"}), 400
+    
+    results = {
+        "total": len(attack_ids),
+        "deleted": 0,
+        "failed": 0
+    }
+    
+    for attack_id in attack_ids:
+        try:
+            success = Attack.delete(attack_id)
+            if success:
+                results["deleted"] += 1
+            else:
+                results["failed"] += 1
+        except Exception:
+            results["failed"] += 1
+    
+    return jsonify({
+        "message": f"批量删除完成。{results['deleted']} 个攻击已删除，{results['failed']} 个删除失败。",
+        "results": results
+    })
+
 @attack_bp.route('/execute', methods=['POST'])
 def execute_attack():
     """

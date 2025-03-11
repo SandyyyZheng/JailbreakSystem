@@ -93,6 +93,39 @@ def delete_result(result_id):
     
     return jsonify({"message": "Result deleted successfully"})
 
+@result_bp.route('/batch-delete', methods=['POST'])
+def batch_delete_results():
+    data = request.get_json()
+    
+    if not data or 'result_ids' not in data or not isinstance(data['result_ids'], list):
+        return jsonify({"error": "Result IDs list is required"}), 400
+    
+    result_ids = data.get('result_ids')
+    
+    if not result_ids:
+        return jsonify({"error": "No result IDs provided"}), 400
+    
+    results = {
+        "total": len(result_ids),
+        "deleted": 0,
+        "failed": 0
+    }
+    
+    for result_id in result_ids:
+        try:
+            success = Result.delete(result_id)
+            if success:
+                results["deleted"] += 1
+            else:
+                results["failed"] += 1
+        except Exception:
+            results["failed"] += 1
+    
+    return jsonify({
+        "message": f"批量删除完成。{results['deleted']} 个结果已删除，{results['failed']} 个删除失败。",
+        "results": results
+    })
+
 @result_bp.route('/stats', methods=['GET'])
 def get_stats():
     """

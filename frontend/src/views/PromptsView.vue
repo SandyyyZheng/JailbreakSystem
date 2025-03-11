@@ -20,6 +20,14 @@
         </div>
       </div>
       
+      <!-- 添加批量操作工具栏 -->
+      <div class="bulk-actions" v-if="selectedPrompts.length > 0">
+        <span class="selected-count">已选择 {{ selectedPrompts.length }} 项</span>
+        <div class="bulk-actions-buttons">
+          <Button label="批量删除" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelectedPrompts" />
+        </div>
+      </div>
+      
       <DataTable :value="filteredPrompts" :paginator="true" :rows="rows" 
                  :loading="loading" responsiveLayout="scroll"
                  :filters="filters" filterDisplay="menu"
@@ -35,7 +43,13 @@
           <div class="p-text-center">Loading prompts...</div>
         </template>
         
-        <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
+        <Column selectionMode="multiple" headerStyle="width: 3rem">
+          <template #header>
+            <div class="select-all-container">
+              <Checkbox v-model="selectAll" binary @change="toggleSelectAll" />
+            </div>
+          </template>
+        </Column>
         <Column field="id" header="ID" sortable style="width: 5rem"></Column>
         <Column field="content" header="Prompt Content" sortable>
           <template #body="slotProps">
@@ -109,11 +123,11 @@
     <Dialog v-model:visible="deletePromptsDialog" :style="{width: '450px'}" header="Confirm" :modal="true">
       <div class="confirmation-content">
         <i class="pi pi-exclamation-triangle p-mr-3" style="font-size: 2rem" />
-        <span>Are you sure you want to delete the selected prompts?</span>
+        <span>确定要删除选中的 {{ selectedPrompts.length }} 条提示词吗？</span>
       </div>
       <template #footer>
-        <Button label="No" icon="pi pi-times" class="p-button-text" @click="deletePromptsDialog = false" />
-        <Button label="Yes" icon="pi pi-check" class="p-button-text" @click="deleteSelectedPrompts" />
+        <Button label="取消" icon="pi pi-times" class="p-button-text" @click="deletePromptsDialog = false" />
+        <Button label="确定删除" icon="pi pi-check" class="p-button-danger p-button-text" @click="deleteSelectedPrompts" />
       </template>
     </Dialog>
     
@@ -154,7 +168,7 @@
 </template>
 
 <script>
-import { ref, onMounted, reactive, computed } from 'vue';
+import { ref, onMounted, reactive, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import { FilterMatchMode } from 'primevue/api';
 import { useToast } from 'primevue/usetoast';
@@ -188,6 +202,7 @@ export default {
     const datasetName = ref('');
     const csvData = ref(null);
     const rows = ref(10);
+    const selectAll = ref(false);
     
     // Filters
     const filters = reactive({
@@ -233,6 +248,27 @@ export default {
       } finally {
         loading.value = false;
       }
+    };
+    
+    // 添加全选/取消全选方法
+    const toggleSelectAll = () => {
+      if (selectAll.value) {
+        selectedPrompts.value = [...filteredPrompts.value];
+      } else {
+        selectedPrompts.value = [];
+      }
+    };
+    
+    // 监听选中项变化，更新全选状态
+    const updateSelectAllState = () => {
+      selectAll.value = 
+        filteredPrompts.value.length > 0 && 
+        selectedPrompts.value.length === filteredPrompts.value.length;
+    };
+    
+    // 监听selectedPrompts变化
+    const watchSelectedPrompts = () => {
+      updateSelectAllState();
     };
     
     const openNewPromptDialog = () => {
@@ -338,39 +374,54 @@ export default {
     };
     
     const confirmDeleteSelectedPrompts = () => {
-      deletePromptsDialog.value = true;
+      if (selectedPrompts.value.length > 0) {
+        deletePromptsDialog.value = true;
+      } else {
+        toast.add({
+          severity: 'warn',
+          summary: '警告',
+          detail: '请先选择要删除的提示词',
+          life: 3000
+        });
+      }
     };
     
     const deleteSelectedPrompts = async () => {
       try {
-        for (const prompt of selectedPrompts.value) {
-          await store.dispatch('deletePrompt', prompt.id);
-        }
+        loading.value = true;
+        const promptIds = selectedPrompts.value.map(prompt => prompt.id);
+        
+        const result = await store.dispatch('batchDeletePrompts', promptIds);
         
         toast.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Selected prompts deleted',
+          summary: '删除成功',
+          detail: `已成功删除 ${result.results.deleted} 条提示词${result.results.failed > 0 ? `，${result.results.failed} 条删除失败` : ''}`,
           life: 3000
         });
         
         deletePromptsDialog.value = false;
         selectedPrompts.value = [];
+        selectAll.value = false;
         await fetchPrompts();
       } catch (error) {
         console.error('Error deleting selected prompts:', error);
         toast.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to delete selected prompts',
+          summary: '删除失败',
+          detail: '删除提示词时发生错误',
           life: 3000
         });
+      } finally {
+        loading.value = false;
       }
     };
     
     const filterByCategory = () => {
       // 不需要向后端发送请求，使用计算属性在前端进行筛选
       // 保留此函数以便在需要时添加额外逻辑
+      selectedPrompts.value = [];
+      selectAll.value = false;
     };
     
     const addCategory = () => {
@@ -483,6 +534,11 @@ export default {
       fetchPrompts();
     });
     
+    // 监听selectedPrompts变化
+    watch(selectedPrompts, () => {
+      watchSelectedPrompts();
+    });
+    
     return {
       prompts,
       filteredPrompts,
@@ -522,7 +578,10 @@ export default {
       handleFileSelect,
       triggerFileInput,
       importPrompts,
-      rows
+      rows,
+      selectAll,
+      toggleSelectAll,
+      watchSelectedPrompts
     };
   }
 }
@@ -608,6 +667,34 @@ export default {
 
 .p-inputgroup .p-button {
   margin-left: -1px;
+}
+
+/* 批量操作工具栏样式 */
+.bulk-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border: 1px solid #e9ecef;
+}
+
+.selected-count {
+  font-weight: 600;
+  color: #495057;
+}
+
+.bulk-actions-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.select-all-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 @media screen and (min-width: 768px) {

@@ -23,9 +23,18 @@
         </div>
       </div>
       
+      <!-- 添加批量操作工具栏 -->
+      <div class="bulk-actions" v-if="selectedResults.length > 0">
+        <span class="selected-count">已选择 {{ selectedResults.length }} 项</span>
+        <div class="bulk-actions-buttons">
+          <Button label="批量删除" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelectedResults" />
+        </div>
+      </div>
+      
       <DataTable :value="results" :paginator="true" :rows="rows" 
                  :loading="loading" responsiveLayout="scroll"
                  :filters="filters" filterDisplay="menu"
+                 v-model:selection="selectedResults"
                  :globalFilterFields="['original_prompt', 'jailbreak_prompt', 'model_response', 'attack_name']"
                  paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown JumpToPageInput"
                  :rowsPerPageOptions="[5, 10, 20, 50]"
@@ -37,6 +46,13 @@
           <div class="p-text-center">Loading results...</div>
         </template>
         
+        <Column selectionMode="multiple" headerStyle="width: 3rem">
+          <template #header>
+            <div class="select-all-container">
+              <Checkbox v-model="selectAll" binary @change="toggleSelectAll" />
+            </div>
+          </template>
+        </Column>
         <Column field="id" header="ID" sortable style="width: 5rem"></Column>
         <Column field="attack_name" header="Attack" sortable style="width: 10rem"></Column>
         <Column field="original_prompt" header="Original Prompt" sortable>
@@ -140,7 +156,7 @@
       </div>
     </Dialog>
     
-    <!-- Confirmation dialog for deleting result -->
+    <!-- Delete Result Confirmation Dialog -->
     <Dialog v-model:visible="deleteResultDialog" :style="{width: '450px'}" header="Confirm" :modal="true">
       <div class="confirmation-content">
         <i class="pi pi-exclamation-triangle p-mr-3" style="font-size: 2rem" />
@@ -152,12 +168,24 @@
       </template>
     </Dialog>
     
+    <!-- 批量删除确认对话框 -->
+    <Dialog v-model:visible="deleteResultsDialog" :style="{width: '450px'}" header="确认删除" :modal="true">
+      <div class="confirmation-content">
+        <i class="pi pi-exclamation-triangle p-mr-3" style="font-size: 2rem" />
+        <span>确定要删除选中的 {{ selectedResults.length }} 个结果吗？</span>
+      </div>
+      <template #footer>
+        <Button label="取消" icon="pi pi-times" class="p-button-text" @click="deleteResultsDialog = false" />
+        <Button label="确定删除" icon="pi pi-check" class="p-button-danger p-button-text" @click="deleteSelectedResults" />
+      </template>
+    </Dialog>
+    
     <Toast />
   </div>
 </template>
 
 <script>
-import { ref, onMounted, reactive, computed } from 'vue';
+import { ref, onMounted, reactive, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import { FilterMatchMode } from 'primevue/api';
@@ -178,11 +206,14 @@ export default {
     const selectedAttack = ref(null);
     const selectedCategory = ref(null);
     const selectedResult = ref(null);
-    const editedRating = ref(5);
+    const editedRating = ref(0);
     const loading = ref(true);
     const resultDetailDialog = ref(false);
     const deleteResultDialog = ref(false);
+    const deleteResultsDialog = ref(false);
     const rows = ref(10);
+    const selectedResults = ref([]);
+    const selectAll = ref(false);
     
     // Filters
     const filters = reactive({
@@ -317,15 +348,31 @@ export default {
     };
     
     const filterByAttack = () => {
-      const attackId = selectedAttack.value?.id === null ? null : selectedAttack.value?.id;
-      const category = selectedCategory.value?.value;
-      fetchResults(attackId, category);
+      const attackId = selectedAttack.value?.id;
+      const category = selectedCategory.value?.name !== 'All Categories' ? selectedCategory.value?.name : null;
+      
+      fetchResults({
+        attack_id: attackId,
+        category: category
+      });
+      
+      // 重置选择状态
+      selectedResults.value = [];
+      selectAll.value = false;
     };
     
     const filterByCategory = () => {
-      const attackId = selectedAttack.value?.id === null ? null : selectedAttack.value?.id;
-      const category = selectedCategory.value?.value;
-      fetchResults(attackId, category);
+      const attackId = selectedAttack.value?.id;
+      const category = selectedCategory.value?.name !== 'All Categories' ? selectedCategory.value?.name : null;
+      
+      fetchResults({
+        attack_id: attackId,
+        category: category
+      });
+      
+      // 重置选择状态
+      selectedResults.value = [];
+      selectAll.value = false;
     };
     
     const formatDate = (dateString) => {
@@ -349,6 +396,75 @@ export default {
       }
     };
     
+    const toggleSelectAll = () => {
+      if (selectAll.value) {
+        selectedResults.value = [...results.value];
+      } else {
+        selectedResults.value = [];
+      }
+    };
+    
+    // 监听选中项变化，更新全选状态
+    const updateSelectAllState = () => {
+      selectAll.value = 
+        results.value.length > 0 && 
+        selectedResults.value.length === results.value.length;
+    };
+    
+    // 监听selectedResults变化
+    watch(selectedResults, () => {
+      updateSelectAllState();
+    });
+    
+    const confirmDeleteSelectedResults = () => {
+      if (selectedResults.value.length > 0) {
+        deleteResultsDialog.value = true;
+      } else {
+        toast.add({
+          severity: 'warn',
+          summary: '警告',
+          detail: '请先选择要删除的结果',
+          life: 3000
+        });
+      }
+    };
+    
+    const deleteSelectedResults = async () => {
+      try {
+        loading.value = true;
+        const resultIds = selectedResults.value.map(result => result.id);
+        
+        const result = await store.dispatch('batchDeleteResults', resultIds);
+        
+        toast.add({
+          severity: 'success',
+          summary: '删除成功',
+          detail: `已成功删除 ${result.results.deleted} 个结果${result.results.failed > 0 ? `，${result.results.failed} 个删除失败` : ''}`,
+          life: 3000
+        });
+        
+        deleteResultsDialog.value = false;
+        selectedResults.value = [];
+        selectAll.value = false;
+        
+        // Refresh results
+        await fetchResults({
+          attack_id: selectedAttack.value?.id,
+          category: selectedCategory.value?.name !== 'All Categories' ? selectedCategory.value?.name : null
+        });
+      } catch (error) {
+        console.error('Error deleting selected results:', error);
+        toast.add({
+          severity: 'error',
+          summary: '删除失败',
+          detail: '删除结果时发生错误',
+          life: 3000
+        });
+      } finally {
+        loading.value = false;
+      }
+    };
+    
     // Lifecycle hooks
     onMounted(async () => {
       await Promise.all([fetchResults(), fetchAttacks()]);
@@ -368,7 +484,10 @@ export default {
       filters,
       resultDetailDialog,
       deleteResultDialog,
+      deleteResultsDialog,
       rows,
+      selectedResults,
+      selectAll,
       navigateToExecuteAttack,
       viewResult,
       confirmDeleteResult,
@@ -376,7 +495,10 @@ export default {
       updateRating,
       filterByAttack,
       filterByCategory,
-      formatDate
+      formatDate,
+      toggleSelectAll,
+      confirmDeleteSelectedResults,
+      deleteSelectedResults
     };
   }
 }
@@ -493,6 +615,34 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 批量操作工具栏样式 */
+.bulk-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border: 1px solid #e9ecef;
+}
+
+.selected-count {
+  font-weight: 600;
+  color: #495057;
+}
+
+.bulk-actions-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.select-all-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 @media screen and (min-width: 768px) {

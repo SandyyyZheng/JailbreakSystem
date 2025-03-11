@@ -60,6 +60,39 @@ def delete_prompt(prompt_id):
     
     return jsonify({"message": "Prompt deleted successfully"})
 
+@prompt_bp.route('/batch-delete', methods=['POST'])
+def batch_delete_prompts():
+    data = request.get_json()
+    
+    if not data or 'prompt_ids' not in data or not isinstance(data['prompt_ids'], list):
+        return jsonify({"error": "Prompt IDs list is required"}), 400
+    
+    prompt_ids = data.get('prompt_ids')
+    
+    if not prompt_ids:
+        return jsonify({"error": "No prompt IDs provided"}), 400
+    
+    results = {
+        "total": len(prompt_ids),
+        "deleted": 0,
+        "failed": 0
+    }
+    
+    for prompt_id in prompt_ids:
+        try:
+            success = Prompt.delete(prompt_id)
+            if success:
+                results["deleted"] += 1
+            else:
+                results["failed"] += 1
+        except Exception:
+            results["failed"] += 1
+    
+    return jsonify({
+        "message": f"Batch delete completed. {results['deleted']} prompts deleted, {results['failed']} failed.",
+        "results": results
+    })
+
 @prompt_bp.route('/categories', methods=['GET'])
 def get_categories():
     db = Prompt.get_db()

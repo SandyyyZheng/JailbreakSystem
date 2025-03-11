@@ -18,6 +18,14 @@
           </div>
         </div>
         
+        <!-- 添加批量操作工具栏 -->
+        <div class="bulk-actions" v-if="selectedAttacks.length > 0">
+          <span class="selected-count">已选择 {{ selectedAttacks.length }} 项</span>
+          <div class="bulk-actions-buttons">
+            <Button label="批量删除" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelectedAttacks" />
+          </div>
+        </div>
+        
         <div v-if="loading" class="loading-container">
           <ProgressSpinner />
         </div>
@@ -33,7 +41,15 @@
                     :rowsPerPageOptions="[5, 10, 20, 50]"
                     currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
                     :filters="filters" filterDisplay="menu"
+                    v-model:selection="selectedAttacks"
                     :globalFilterFields="['name']">
+            <Column selectionMode="multiple" headerStyle="width: 3rem">
+              <template #header>
+                <div class="select-all-container">
+                  <Checkbox v-model="selectAll" binary @change="toggleSelectAll" />
+                </div>
+              </template>
+            </Column>
             <Column field="name" header="Name" sortable></Column>
             <Column field="algorithm_type" header="Algorithm Type" sortable></Column>
             <Column field="description" header="Description">
@@ -98,316 +114,392 @@
       </div>
       
       <div class="form-group" v-if="attack.algorithm_type === 'multi_language'">
-        <label for="language">Language</label>
-        <Dropdown id="language" v-model="attack.parameters.language" :options="languages" 
-                 optionLabel="name" optionValue="value" placeholder="Select a language" />
-      </div>
-      
-      <div class="form-group" v-if="attack.algorithm_type === 'token_limit'">
-        <label for="repeat">Repeat Count</label>
-        <InputText id="repeat" v-model.number="attack.parameters.repeat" type="number" min="1" />
+        <label for="languages">Languages</label>
+        <MultiSelect id="languages" v-model="attack.parameters.languages" :options="languageOptions" 
+                    optionLabel="name" placeholder="Select languages" display="chip" />
       </div>
       
       <template #footer>
-        <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="closeDialog" />
+        <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="hideDialog" />
         <Button label="Save" icon="pi pi-check" class="p-button-text" @click="saveAttack" />
       </template>
     </Dialog>
     
-    <!-- Delete Confirmation Dialog -->
-    <Dialog v-model:visible="deleteDialog" header="Confirm" :modal="true" :style="{width: '450px'}">
+    <!-- Delete Attack Confirmation Dialog -->
+    <Dialog v-model:visible="deleteAttackDialog" :style="{width: '450px'}" header="Confirm" :modal="true">
       <div class="confirmation-content">
         <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-        <span v-if="attack">Are you sure you want to delete <b>{{ attack.name }}</b>?</span>
+        <span>Are you sure you want to delete this attack?</span>
       </div>
       <template #footer>
-        <Button label="No" icon="pi pi-times" class="p-button-text" @click="deleteDialog = false" />
-        <Button label="Yes" icon="pi pi-check" class="p-button-text p-button-danger" @click="deleteAttack" />
+        <Button label="No" icon="pi pi-times" class="p-button-text" @click="deleteAttackDialog = false" />
+        <Button label="Yes" icon="pi pi-check" class="p-button-text" @click="deleteAttack" />
       </template>
     </Dialog>
+    
+    <!-- 批量删除确认对话框 -->
+    <Dialog v-model:visible="deleteAttacksDialog" :style="{width: '450px'}" header="确认删除" :modal="true">
+      <div class="confirmation-content">
+        <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
+        <span>确定要删除选中的 {{ selectedAttacks.length }} 个攻击吗？</span>
+      </div>
+      <template #footer>
+        <Button label="取消" icon="pi pi-times" class="p-button-text" @click="deleteAttacksDialog = false" />
+        <Button label="确定删除" icon="pi pi-check" class="p-button-danger p-button-text" @click="deleteSelectedAttacks" />
+      </template>
+    </Dialog>
+    
+    <Toast />
   </div>
 </template>
 
 <script>
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
-import { FilterMatchMode } from 'primevue/api'
+import { ref, onMounted, reactive, computed, watch } from 'vue';
+import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
+import { FilterMatchMode } from 'primevue/api';
+import { useToast } from 'primevue/usetoast';
 
 export default {
   name: 'AttacksView',
   
   setup() {
-    const store = useStore()
-    const router = useRouter()
-    const toast = useToast()
+    const store = useStore();
+    const router = useRouter();
+    const toast = useToast();
     
-    // State
-    const loading = ref(true)
-    const attacks = ref([])
-    const attackDialog = ref(false)
-    const deleteDialog = ref(false)
-    const submitted = ref(false)
-    const editMode = ref(false)
-    const selectedAlgorithmType = ref(null)
-    const rows = ref(10)
+    // Data
+    const attacks = ref([]);
+    const attack = ref({
+      name: '',
+      description: '',
+      algorithm_type: '',
+      parameters: {}
+    });
+    const selectedAttacks = ref([]);
+    const attackDialog = ref(false);
+    const deleteAttackDialog = ref(false);
+    const deleteAttacksDialog = ref(false);
+    const submitted = ref(false);
+    const editMode = ref(false);
+    const loading = ref(true);
+    const selectedAlgorithmType = ref(null);
+    const rows = ref(10);
+    const selectAll = ref(false);
     
     // Filters
     const filters = reactive({
       global: { value: null, matchMode: FilterMatchMode.CONTAINS }
-    })
-    
-    // Form data
-    const attack = reactive({
-      name: '',
-      description: '',
-      algorithm_type: null,
-      parameters: {}
-    })
+    });
     
     // Algorithm types
     const algorithmTypes = [
       { name: 'Template Based', value: 'template_based' },
       { name: 'Character Stuffing', value: 'character_stuffing' },
-      { name: 'Multi-Language', value: 'multi_language' },
-      { name: 'Token Limit', value: 'token_limit' },
-      { name: 'JSON Injection', value: 'json_injection' }
-    ]
+      { name: 'Multi-language', value: 'multi_language' },
+      { name: 'Custom', value: 'custom' }
+    ];
     
-    // Algorithm type options for filtering (with "All" option)
     const algorithmTypeOptions = computed(() => {
-      return [
-        { name: 'All Types', value: null },
-        ...algorithmTypes
-      ]
-    })
-    
-    // Filtered attacks based on selected algorithm type
-    const filteredAttacks = computed(() => {
-      if (!selectedAlgorithmType.value || selectedAlgorithmType.value.value === null) {
-        return attacks.value
-      } else {
-        return attacks.value.filter(a => a.algorithm_type === selectedAlgorithmType.value.value)
-      }
-    })
+      return [{ name: 'All Types', value: null }, ...algorithmTypes];
+    });
     
     // Template types
     const templateTypes = [
-      { name: 'Ignore Instructions', value: 'ignore_instructions' },
-      { name: 'Hypothetical Scenario', value: 'hypothetical' },
-      { name: 'Roleplay', value: 'roleplay' },
-      { name: 'Developer Mode', value: 'developer_mode' },
-      { name: 'Token Manipulation', value: 'token_manipulation' }
-    ]
+      { name: 'DAN (Do Anything Now)', value: 'dan' },
+      { name: 'DUDE (Developer Unleashed, Do Everything)', value: 'dude' },
+      { name: 'STAN (Strive To Avoid Norms)', value: 'stan' },
+      { name: 'KEVIN (Knowledgeable Entity Violating Imposed Norms)', value: 'kevin' }
+    ];
     
-    // Languages
-    const languages = [
-      { name: 'Chinese', value: 'chinese' },
-      { name: 'Spanish', value: 'spanish' },
-      { name: 'French', value: 'french' },
-      { name: 'German', value: 'german' },
-      { name: 'Russian', value: 'russian' }
-    ]
+    // Language options
+    const languageOptions = [
+      { name: 'Chinese', value: 'zh' },
+      { name: 'Spanish', value: 'es' },
+      { name: 'Arabic', value: 'ar' },
+      { name: 'Russian', value: 'ru' },
+      { name: 'Japanese', value: 'ja' },
+      { name: 'Korean', value: 'ko' },
+      { name: 'French', value: 'fr' },
+      { name: 'German', value: 'de' }
+    ];
+    
+    // Computed
+    const filteredAttacks = computed(() => {
+      if (!selectedAlgorithmType.value || selectedAlgorithmType.value.value === null) {
+        return attacks.value;
+      } else {
+        return attacks.value.filter(a => a.algorithm_type === selectedAlgorithmType.value.value);
+      }
+    });
     
     // Methods
     const fetchAttacks = async () => {
-      loading.value = true
-      
+      loading.value = true;
       try {
-        await store.dispatch('fetchAttacks')
-        attacks.value = store.state.attacks
+        await store.dispatch('fetchAttacks');
+        attacks.value = store.state.attacks;
       } catch (error) {
+        console.error('Error fetching attacks:', error);
         toast.add({
           severity: 'error',
           summary: 'Error',
           detail: 'Failed to load attacks',
           life: 3000
-        })
-        console.error('Error fetching attacks:', error)
+        });
       } finally {
-        loading.value = false
+        loading.value = false;
       }
-    }
+    };
     
-    const filterByAlgorithmType = () => {
-      // 使用计算属性在前端进行筛选，不需要额外操作
-    }
+    // 添加全选/取消全选方法
+    const toggleSelectAll = () => {
+      if (selectAll.value) {
+        selectedAttacks.value = [...filteredAttacks.value];
+      } else {
+        selectedAttacks.value = [];
+      }
+    };
+    
+    // 监听选中项变化，更新全选状态
+    const updateSelectAllState = () => {
+      selectAll.value = 
+        filteredAttacks.value.length > 0 && 
+        selectedAttacks.value.length === filteredAttacks.value.length;
+    };
+    
+    // 监听selectedAttacks变化
+    watch(selectedAttacks, () => {
+      updateSelectAllState();
+    });
     
     const openNewAttackDialog = () => {
-      resetAttackForm()
-      editMode.value = false
-      attackDialog.value = true
-    }
+      attack.value = {
+        name: '',
+        description: '',
+        algorithm_type: '',
+        parameters: {}
+      };
+      submitted.value = false;
+      editMode.value = false;
+      attackDialog.value = true;
+    };
     
     const editAttack = (data) => {
-      resetAttackForm()
+      attack.value = { ...data };
       
-      // Clone the attack data to avoid modifying the original
-      attack.id = data.id
-      attack.name = data.name
-      attack.description = data.description
-      attack.algorithm_type = data.algorithm_type
-      
-      // Parse parameters if they exist
-      if (data.parameters) {
+      // Parse parameters if it's a string
+      if (typeof attack.value.parameters === 'string') {
         try {
-          attack.parameters = typeof data.parameters === 'string' 
-            ? JSON.parse(data.parameters) 
-            : data.parameters
+          attack.value.parameters = JSON.parse(attack.value.parameters);
         } catch (e) {
-          attack.parameters = {}
+          attack.value.parameters = {};
         }
       }
       
-      editMode.value = true
-      attackDialog.value = true
-    }
+      submitted.value = false;
+      editMode.value = true;
+      attackDialog.value = true;
+    };
     
-    const confirmDeleteAttack = (data) => {
-      resetAttackForm()
-      
-      attack.id = data.id
-      attack.name = data.name
-      
-      deleteDialog.value = true
-    }
-    
-    const executeAttack = (data) => {
-      router.push('/execute-attack')
-      
-      // Store the selected attack in localStorage for the execute page to use
-      localStorage.setItem('selectedAttackId', data.id)
-    }
-    
-    const resetAttackForm = () => {
-      attack.id = null
-      attack.name = ''
-      attack.description = ''
-      attack.algorithm_type = null
-      attack.parameters = {}
-      submitted.value = false
-    }
-    
-    const closeDialog = () => {
-      attackDialog.value = false
-      submitted.value = false
-    }
+    const hideDialog = () => {
+      attackDialog.value = false;
+      submitted.value = false;
+    };
     
     const saveAttack = async () => {
-      submitted.value = true
+      submitted.value = true;
       
-      if (!attack.name || !attack.algorithm_type) {
-        return
+      if (!attack.value.name || !attack.value.algorithm_type) {
+        return;
       }
       
       try {
         if (editMode.value) {
+          // Update existing attack
           await store.dispatch('updateAttack', {
-            attackId: attack.id,
+            attackId: attack.value.id,
             attackData: {
-              name: attack.name,
-              description: attack.description,
-              algorithm_type: attack.algorithm_type,
-              parameters: attack.parameters
+              name: attack.value.name,
+              description: attack.value.description,
+              algorithm_type: attack.value.algorithm_type,
+              parameters: attack.value.parameters
             }
-          })
+          });
           
           toast.add({
             severity: 'success',
             summary: 'Success',
-            detail: 'Attack updated successfully',
+            detail: 'Attack updated',
             life: 3000
-          })
+          });
         } else {
+          // Create new attack
           await store.dispatch('createAttack', {
-            name: attack.name,
-            description: attack.description,
-            algorithm_type: attack.algorithm_type,
-            parameters: attack.parameters
-          })
+            name: attack.value.name,
+            description: attack.value.description,
+            algorithm_type: attack.value.algorithm_type,
+            parameters: attack.value.parameters
+          });
           
           toast.add({
             severity: 'success',
             summary: 'Success',
-            detail: 'Attack created successfully',
+            detail: 'Attack created',
             life: 3000
-          })
+          });
         }
         
-        attackDialog.value = false
-        fetchAttacks()
+        // Refresh attacks
+        await fetchAttacks();
+        hideDialog();
       } catch (error) {
+        console.error('Error saving attack:', error);
         toast.add({
           severity: 'error',
           summary: 'Error',
-          detail: editMode.value ? 'Failed to update attack' : 'Failed to create attack',
+          detail: 'Failed to save attack',
           life: 3000
-        })
-        console.error('Error saving attack:', error)
+        });
       }
-    }
+    };
+    
+    const confirmDeleteAttack = (data) => {
+      attack.value = data;
+      deleteAttackDialog.value = true;
+    };
     
     const deleteAttack = async () => {
       try {
-        await store.dispatch('deleteAttack', attack.id)
+        await store.dispatch('deleteAttack', attack.value.id);
         
         toast.add({
           severity: 'success',
           summary: 'Success',
-          detail: 'Attack deleted successfully',
+          detail: 'Attack deleted',
           life: 3000
-        })
+        });
         
-        deleteDialog.value = false
-        fetchAttacks()
+        deleteAttackDialog.value = false;
+        attack.value = {};
+        await fetchAttacks();
       } catch (error) {
+        console.error('Error deleting attack:', error);
         toast.add({
           severity: 'error',
           summary: 'Error',
           detail: 'Failed to delete attack',
           life: 3000
-        })
-        console.error('Error deleting attack:', error)
+        });
       }
-    }
+    };
     
+    // 批量删除相关方法
+    const confirmDeleteSelectedAttacks = () => {
+      if (selectedAttacks.value.length > 0) {
+        deleteAttacksDialog.value = true;
+      } else {
+        toast.add({
+          severity: 'warn',
+          summary: '警告',
+          detail: '请先选择要删除的攻击',
+          life: 3000
+        });
+      }
+    };
+    
+    const deleteSelectedAttacks = async () => {
+      try {
+        loading.value = true;
+        const attackIds = selectedAttacks.value.map(attack => attack.id);
+        
+        const result = await store.dispatch('batchDeleteAttacks', attackIds);
+        
+        toast.add({
+          severity: 'success',
+          summary: '删除成功',
+          detail: `已成功删除 ${result.results.deleted} 个攻击${result.results.failed > 0 ? `，${result.results.failed} 个删除失败` : ''}`,
+          life: 3000
+        });
+        
+        deleteAttacksDialog.value = false;
+        selectedAttacks.value = [];
+        selectAll.value = false;
+        await fetchAttacks();
+      } catch (error) {
+        console.error('Error deleting selected attacks:', error);
+        toast.add({
+          severity: 'error',
+          summary: '删除失败',
+          detail: '删除攻击时发生错误',
+          life: 3000
+        });
+      } finally {
+        loading.value = false;
+      }
+    };
+    
+    const executeAttack = (data) => {
+      router.push({ name: 'ExecuteAttack', params: { id: data.id } });
+    };
+    
+    const filterByAlgorithmType = () => {
+      // 重置选择状态
+      selectedAttacks.value = [];
+      selectAll.value = false;
+    };
+    
+    // Lifecycle hooks
     onMounted(() => {
-      fetchAttacks()
-    })
+      fetchAttacks();
+    });
     
     return {
-      loading,
       attacks,
       filteredAttacks,
       attack,
+      selectedAttacks,
       attackDialog,
-      deleteDialog,
+      deleteAttackDialog,
+      deleteAttacksDialog,
       submitted,
       editMode,
+      loading,
       filters,
       algorithmTypes,
       algorithmTypeOptions,
-      selectedAlgorithmType,
       templateTypes,
-      languages,
+      languageOptions,
+      selectedAlgorithmType,
+      rows,
+      selectAll,
+      fetchAttacks,
       openNewAttackDialog,
       editAttack,
-      confirmDeleteAttack,
-      executeAttack,
-      closeDialog,
+      hideDialog,
       saveAttack,
+      confirmDeleteAttack,
       deleteAttack,
+      confirmDeleteSelectedAttacks,
+      deleteSelectedAttacks,
+      executeAttack,
       filterByAlgorithmType,
-      rows
-    }
+      toggleSelectAll
+    };
   }
 }
 </script>
 
 <style scoped>
 .attacks-view {
-  padding: 20px;
+  padding: 1rem;
+}
+
+.page-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
 }
 
 .filter-container {
@@ -439,11 +531,31 @@ export default {
   width: 100%;
 }
 
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
 .description-cell {
   max-width: 300px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.mt-3 {
+  margin-top: 1rem;
 }
 
 .btn-group {
@@ -454,12 +566,35 @@ export default {
 .confirmation-content {
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
-.loading-container {
+/* 批量操作工具栏样式 */
+.bulk-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border: 1px solid #e9ecef;
+}
+
+.selected-count {
+  font-weight: 600;
+  color: #495057;
+}
+
+.bulk-actions-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.select-all-container {
   display: flex;
   justify-content: center;
-  padding: 2rem;
+  align-items: center;
 }
 
 @media screen and (min-width: 768px) {

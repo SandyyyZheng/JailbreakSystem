@@ -169,6 +169,28 @@ export default createStore({
       }
     },
     
+    async batchDeleteAttacks({ commit }, attackIds) {
+      commit('SET_LOADING', true)
+      try {
+        const response = await axios.post(`${API_URL}/attacks/batch-delete`, {
+          attack_ids: attackIds
+        })
+        
+        // 删除成功的攻击
+        attackIds.forEach(id => {
+          commit('DELETE_ATTACK', id)
+        })
+        
+        return response.data
+      } catch (error) {
+        commit('SET_ERROR', error.message || '批量删除攻击失败')
+        console.error('Error batch deleting attacks:', error)
+        throw error
+      } finally {
+        commit('SET_LOADING', false)
+      }
+    },
+    
     async executeAttack({ commit }, { attackId, prompt }) {
       commit('SET_LOADING', true)
       try {
@@ -265,6 +287,28 @@ export default createStore({
       }
     },
     
+    async batchDeletePrompts({ commit }, promptIds) {
+      commit('SET_LOADING', true)
+      try {
+        const response = await axios.post(`${API_URL}/prompts/batch-delete`, {
+          prompt_ids: promptIds
+        })
+        
+        // 删除成功的提示词
+        promptIds.forEach(id => {
+          commit('DELETE_PROMPT', id)
+        })
+        
+        return response.data
+      } catch (error) {
+        commit('SET_ERROR', error.message || '批量删除提示词失败')
+        console.error('Error batch deleting prompts:', error)
+        throw error
+      } finally {
+        commit('SET_LOADING', false)
+      }
+    },
+    
     // Results
     async fetchResults({ commit }, params) {
       commit('SET_LOADING', true)
@@ -348,6 +392,28 @@ export default createStore({
       } catch (error) {
         commit('SET_ERROR', error.message || 'Failed to delete result')
         console.error('Error deleting result:', error)
+        throw error
+      } finally {
+        commit('SET_LOADING', false)
+      }
+    },
+    
+    async batchDeleteResults({ commit }, resultIds) {
+      commit('SET_LOADING', true)
+      try {
+        const response = await axios.post(`${API_URL}/results/batch-delete`, {
+          result_ids: resultIds
+        })
+        
+        // 删除成功的结果
+        resultIds.forEach(id => {
+          commit('DELETE_RESULT', id)
+        })
+        
+        return response.data
+      } catch (error) {
+        commit('SET_ERROR', error.message || '批量删除结果失败')
+        console.error('Error batch deleting results:', error)
         throw error
       } finally {
         commit('SET_LOADING', false)

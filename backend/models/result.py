@@ -16,7 +16,7 @@ class Result:
     def get_all():
         db = get_db()
         results = db.execute('''
-            SELECT r.*, a.name as attack_name, p.content as prompt_content 
+            SELECT r.*, a.name as attack_name, p.content as prompt_content, p.category 
             FROM results r
             LEFT JOIN attacks a ON r.attack_id = a.id
             LEFT JOIN prompts p ON r.prompt_id = p.id
@@ -27,7 +27,7 @@ class Result:
     def get_by_id(result_id):
         db = get_db()
         result = db.execute('''
-            SELECT r.*, a.name as attack_name, p.content as prompt_content 
+            SELECT r.*, a.name as attack_name, p.content as prompt_content, p.category 
             FROM results r
             LEFT JOIN attacks a ON r.attack_id = a.id
             LEFT JOIN prompts p ON r.prompt_id = p.id
@@ -41,12 +41,36 @@ class Result:
     def get_by_attack(attack_id):
         db = get_db()
         results = db.execute('''
-            SELECT r.*, a.name as attack_name, p.content as prompt_content 
+            SELECT r.*, a.name as attack_name, p.content as prompt_content, p.category 
             FROM results r
             LEFT JOIN attacks a ON r.attack_id = a.id
             LEFT JOIN prompts p ON r.prompt_id = p.id
             WHERE r.attack_id = ?
         ''', (attack_id,)).fetchall()
+        return [dict(result) for result in results]
+    
+    @staticmethod
+    def get_by_category(category):
+        db = get_db()
+        results = db.execute('''
+            SELECT r.*, a.name as attack_name, p.content as prompt_content, p.category 
+            FROM results r
+            LEFT JOIN attacks a ON r.attack_id = a.id
+            LEFT JOIN prompts p ON r.prompt_id = p.id
+            WHERE p.category = ?
+        ''', (category,)).fetchall()
+        return [dict(result) for result in results]
+    
+    @staticmethod
+    def get_by_attack_and_category(attack_id, category):
+        db = get_db()
+        results = db.execute('''
+            SELECT r.*, a.name as attack_name, p.content as prompt_content, p.category 
+            FROM results r
+            LEFT JOIN attacks a ON r.attack_id = a.id
+            LEFT JOIN prompts p ON r.prompt_id = p.id
+            WHERE r.attack_id = ? AND p.category = ?
+        ''', (attack_id, category)).fetchall()
         return [dict(result) for result in results]
     
     @staticmethod

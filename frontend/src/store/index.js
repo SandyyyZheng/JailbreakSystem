@@ -266,13 +266,37 @@ export default createStore({
     },
     
     // Results
-    async fetchResults({ commit }, attackId = null) {
+    async fetchResults({ commit }, params) {
       commit('SET_LOADING', true)
       try {
         let url = `${API_URL}/results/`
-        if (attackId) {
-          url += `?attack_id=${attackId}`
+        const queryParams = []
+        
+        // 处理不同类型的参数输入
+        let attackId = null
+        let category = null
+        
+        if (typeof params === 'object' && params !== null) {
+          // 如果是对象形式 { attackId, category }
+          attackId = params.attackId
+          category = params.category
+        } else {
+          // 向后兼容，如果是直接传入attackId
+          attackId = params
         }
+        
+        if (attackId) {
+          queryParams.push(`attack_id=${attackId}`)
+        }
+        
+        if (category) {
+          queryParams.push(`category=${category}`)
+        }
+        
+        if (queryParams.length > 0) {
+          url += '?' + queryParams.join('&')
+        }
+        
         const response = await axios.get(url)
         commit('SET_RESULTS', response.data)
       } catch (error) {

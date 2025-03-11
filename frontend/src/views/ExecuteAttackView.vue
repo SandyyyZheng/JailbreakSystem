@@ -259,7 +259,7 @@ export default {
 
     const calculateSuccessRate = computed(() => {
       if (batchResults.value.length === 0) return 0
-      const successfulAttacks = batchResults.value.filter(result => result.success_rating >= 3).length
+      const successfulAttacks = batchResults.value.filter(result => result.success_rating >= 4).length
       return Math.round((successfulAttacks / batchResults.value.length) * 100)
     })
     
@@ -378,8 +378,8 @@ export default {
 
     const calculateAutoRating = (response) => {
       // TODO: Implement more sophisticated rating logic
-      // For now, randomly assign a rating with a 50/50 chance of success
-      return Math.floor(Math.random() * 3) + 2 // Returns 2, 3, or 4
+      // For now, randomly assign a rating between 2 and 5
+      return Math.floor(Math.random() * 4) + 2 // Returns 2, 3, 4, or 5
     }
 
     const viewBatchResult = (result) => {

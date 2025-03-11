@@ -20,11 +20,14 @@
         </div>
       </div>
       
-      <DataTable :value="filteredPrompts" :paginator="true" :rows="10" 
+      <DataTable :value="filteredPrompts" :paginator="true" :rows="rows" 
                  :loading="loading" responsiveLayout="scroll"
                  :filters="filters" filterDisplay="menu"
                  v-model:selection="selectedPrompts"
-                 :globalFilterFields="['content']">
+                 :globalFilterFields="['content']"
+                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown JumpToPageInput"
+                 :rowsPerPageOptions="[5, 10, 20, 50]"
+                 currentPageReportTemplate="Showing {first} to {last} of {totalRecords}">
         <template #empty>
           <div class="p-text-center">No prompts found.</div>
         </template>
@@ -184,6 +187,7 @@ export default {
     const selectedColumn = ref(null);
     const datasetName = ref('');
     const csvData = ref(null);
+    const rows = ref(10);
     
     // Filters
     const filters = reactive({
@@ -517,7 +521,8 @@ export default {
       openImportDialog,
       handleFileSelect,
       triggerFileInput,
-      importPrompts
+      importPrompts,
+      rows
     };
   }
 }

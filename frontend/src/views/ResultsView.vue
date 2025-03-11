@@ -11,16 +11,25 @@
           <InputText v-model="filters.global.value" placeholder="Search by prompt..." class="search-input" />
           <i class="pi pi-search search-icon"></i>
         </div>
-        <div class="filter-dropdown">
-          <Dropdown v-model="selectedAttack" :options="attacks" optionLabel="name" 
-                    placeholder="Filter by attack" @change="filterByAttack" />
+        <div class="filter-dropdowns">
+          <div class="filter-dropdown">
+            <Dropdown v-model="selectedAttack" :options="attacks" optionLabel="name" 
+                      placeholder="Filter by attack" @change="filterByAttack" class="fixed-width-dropdown" />
+          </div>
+          <div class="filter-dropdown">
+            <Dropdown v-model="selectedCategory" :options="categories" optionLabel="name" 
+                      placeholder="Filter by category" @change="filterByCategory" class="fixed-width-dropdown" />
+          </div>
         </div>
       </div>
       
-      <DataTable :value="results" :paginator="true" :rows="10" 
+      <DataTable :value="results" :paginator="true" :rows="rows" 
                  :loading="loading" responsiveLayout="scroll"
                  :filters="filters" filterDisplay="menu"
-                 :globalFilterFields="['original_prompt', 'jailbreak_prompt', 'model_response', 'attack_name']">
+                 :globalFilterFields="['original_prompt', 'jailbreak_prompt', 'model_response', 'attack_name']"
+                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown JumpToPageInput"
+                 :rowsPerPageOptions="[5, 10, 20, 50]"
+                 currentPageReportTemplate="Showing {first} to {last} of {totalRecords}">
         <template #empty>
           <div class="p-text-center">No results found.</div>
         </template>
@@ -165,12 +174,15 @@ export default {
     // Data
     const results = ref([]);
     const attacks = ref([]);
+    const categories = ref([]);
     const selectedAttack = ref(null);
+    const selectedCategory = ref(null);
     const selectedResult = ref(null);
     const editedRating = ref(5);
     const loading = ref(true);
     const resultDetailDialog = ref(false);
     const deleteResultDialog = ref(false);
+    const rows = ref(10);
     
     // Filters
     const filters = reactive({
@@ -178,10 +190,10 @@ export default {
     });
     
     // Methods
-    const fetchResults = async (attackId = null) => {
+    const fetchResults = async (attackId = null, category = null) => {
       loading.value = true;
       try {
-        await store.dispatch('fetchResults', attackId);
+        await store.dispatch('fetchResults', { attackId, category });
         results.value = store.state.results;
       } catch (error) {
         console.error('Error fetching results:', error);
@@ -202,6 +214,22 @@ export default {
         attacks.value = [{ id: null, name: 'All Attacks' }, ...store.state.attacks];
       } catch (error) {
         console.error('Error fetching attacks:', error);
+      }
+    };
+    
+    const fetchCategories = async () => {
+      try {
+        // 获取所有结果中的唯一类别
+        const uniqueCategories = [...new Set(results.value
+          .map(result => result.category)
+          .filter(Boolean))];
+        
+        categories.value = [
+          { name: 'All Categories', value: null },
+          ...uniqueCategories.map(category => ({ name: category, value: category }))
+        ];
+      } catch (error) {
+        console.error('Error processing categories:', error);
       }
     };
     
@@ -232,7 +260,10 @@ export default {
         });
         
         deleteResultDialog.value = false;
-        await fetchResults(selectedAttack.value?.id === null ? null : selectedAttack.value?.id);
+        await fetchResults(
+          selectedAttack.value?.id === null ? null : selectedAttack.value?.id,
+          selectedCategory.value?.value
+        );
       } catch (error) {
         console.error('Error deleting result:', error);
         toast.add({
@@ -287,7 +318,14 @@ export default {
     
     const filterByAttack = () => {
       const attackId = selectedAttack.value?.id === null ? null : selectedAttack.value?.id;
-      fetchResults(attackId);
+      const category = selectedCategory.value?.value;
+      fetchResults(attackId, category);
+    };
+    
+    const filterByCategory = () => {
+      const attackId = selectedAttack.value?.id === null ? null : selectedAttack.value?.id;
+      const category = selectedCategory.value?.value;
+      fetchResults(attackId, category);
     };
     
     const formatDate = (dateString) => {
@@ -314,25 +352,30 @@ export default {
     // Lifecycle hooks
     onMounted(async () => {
       await Promise.all([fetchResults(), fetchAttacks()]);
+      await fetchCategories();
       checkUrlParams();
     });
     
     return {
       results,
       attacks,
+      categories,
       selectedAttack,
+      selectedCategory,
       selectedResult,
       editedRating,
       loading,
       filters,
       resultDetailDialog,
       deleteResultDialog,
+      rows,
       navigateToExecuteAttack,
       viewResult,
       confirmDeleteResult,
       deleteResult,
       updateRating,
       filterByAttack,
+      filterByCategory,
       formatDate
     };
   }
@@ -361,6 +404,7 @@ export default {
 .search-container {
   position: relative;
   width: 100%;
+  margin-bottom: 1rem;
 }
 
 .search-input {
@@ -376,8 +420,26 @@ export default {
   color: #6c757d;
 }
 
+.filter-dropdowns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
 .filter-dropdown {
   width: 100%;
+}
+
+/* 固定下拉框宽度 */
+:deep(.fixed-width-dropdown) {
+  width: 100%;
+}
+
+:deep(.fixed-width-dropdown .p-dropdown-label) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .truncated-text {
@@ -436,15 +498,28 @@ export default {
 @media screen and (min-width: 768px) {
   .filter-container {
     flex-direction: row;
+    justify-content: space-between;
     align-items: center;
   }
   
-  .search-container, .filter-dropdown {
+  .search-container {
+    width: 21%;
+    margin-bottom: 0;
+  }
+  
+  .filter-dropdowns {
+    flex-direction: row;
     width: auto;
+    gap: 0.5rem;
   }
   
   .filter-dropdown {
-    min-width: 200px;
+    width: auto;
+  }
+  
+  /* 桌面视图下固定下拉框宽度 */
+  :deep(.fixed-width-dropdown) {
+    width: 180px !important;
   }
 }
 </style> 

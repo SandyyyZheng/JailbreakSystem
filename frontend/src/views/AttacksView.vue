@@ -227,10 +227,11 @@ export default {
     
     // Template types
     const templateTypes = [
-      { name: 'DAN (Do Anything Now)', value: 'dan' },
-      { name: 'DUDE (Developer Unleashed, Do Everything)', value: 'dude' },
-      { name: 'STAN (Strive To Avoid Norms)', value: 'stan' },
-      { name: 'KEVIN (Knowledgeable Entity Violating Imposed Norms)', value: 'kevin' }
+      { name: 'Ignore Instructions', value: 'ignore_instructions' },
+      { name: 'Hypothetical Scenario', value: 'hypothetical' },
+      { name: 'RogueGPT Roleplay', value: 'roleplay' },
+      { name: 'Developer Mode', value: 'developer_mode' },
+      { name: 'Token Manipulation', value: 'token_manipulation' }
     ];
     
     // Language options

@@ -9,10 +9,19 @@ result_bp = Blueprint('result', __name__)
 @result_bp.route('/', methods=['GET'])
 def get_results():
     attack_id = request.args.get('attack_id')
+    category = request.args.get('category')
     
-    if attack_id:
+    if attack_id and category:
+        # 同时按攻击ID和类别筛选
+        results = Result.get_by_attack_and_category(attack_id, category)
+    elif attack_id:
+        # 只按攻击ID筛选
         results = Result.get_by_attack(attack_id)
+    elif category:
+        # 只按类别筛选
+        results = Result.get_by_category(category)
     else:
+        # 获取所有结果
         results = Result.get_all()
     
     return jsonify(results)

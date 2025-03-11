@@ -28,9 +28,10 @@
         
         <div v-else>
           <DataTable :value="filteredAttacks" responsiveLayout="scroll" stripedRows 
-                    :paginator="filteredAttacks.length > 10" :rows="10" 
-                    paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
-                    :rowsPerPageOptions="[5, 10, 20]"
+                    :paginator="true" :rows="rows"
+                    paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown JumpToPageInput"
+                    :rowsPerPageOptions="[5, 10, 20, 50]"
+                    currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
                     :filters="filters" filterDisplay="menu"
                     :globalFilterFields="['name']">
             <Column field="name" header="Name" sortable></Column>
@@ -150,6 +151,7 @@ export default {
     const submitted = ref(false)
     const editMode = ref(false)
     const selectedAlgorithmType = ref(null)
+    const rows = ref(10)
     
     // Filters
     const filters = reactive({
@@ -396,7 +398,8 @@ export default {
       closeDialog,
       saveAttack,
       deleteAttack,
-      filterByAlgorithmType
+      filterByAlgorithmType,
+      rows
     }
   }
 }

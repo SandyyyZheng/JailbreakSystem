@@ -9,6 +9,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import Dropdown from 'primevue/dropdown'
+import MultiSelect from 'primevue/multiselect'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Card from 'primevue/card'
@@ -45,6 +46,7 @@ app.component('Button', Button)
 app.component('InputText', InputText)
 app.component('Textarea', Textarea)
 app.component('Dropdown', Dropdown)
+app.component('MultiSelect', MultiSelect)
 app.component('DataTable', DataTable)
 app.component('Column', Column)
 app.component('Card', Card)

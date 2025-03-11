@@ -199,6 +199,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useToast } from 'primevue/usetoast'
+import { useRoute } from 'vue-router'
 
 export default {
   name: 'ExecuteAttackView',
@@ -206,6 +207,7 @@ export default {
   setup() {
     const store = useStore()
     const toast = useToast()
+    const route = useRoute()
     
     // State
     const loading = ref(true)
@@ -496,6 +498,13 @@ export default {
     
     onMounted(() => {
       fetchData()
+      
+      // Check for attack ID in query parameters
+      const attackId = route.query.id
+      if (attackId) {
+        // Set this ID to localStorage so it can be used after data is loaded
+        localStorage.setItem('selectedAttackId', attackId)
+      }
     })
     
     return {

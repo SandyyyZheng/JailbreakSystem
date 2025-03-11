@@ -9,8 +9,20 @@ from controllers.result_controller import result_bp
 
 # Initialize Flask app
 app = Flask(__name__)
-# 修改CORS配置，明确指定允许的源
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:8080", "http://localhost:8081", "http://192.168.10.239:8081", "http://192.168.43.82:8080"]}}, supports_credentials=True)
+# 修改CORS配置，使用通配符允许所有本地网络访问
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "http://localhost:8080",
+            "http://localhost:8081",
+            # 允许所有本地网络的8080、8081端口
+            "http://192.168.*:8080",
+            "http://192.168.*:8081"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+}, supports_credentials=True)
 
 # Configuration
 app.config['DATABASE'] = os.path.join(os.path.dirname(__file__), 'database', 'jailbreak.db')

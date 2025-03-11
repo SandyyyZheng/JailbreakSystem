@@ -114,9 +114,28 @@
       </div>
       
       <div class="form-group" v-if="attack.algorithm_type === 'multi_language'">
-        <label for="languages">Languages</label>
-        <MultiSelect id="languages" v-model="attack.parameters.languages" :options="languageOptions" 
-                    optionLabel="name" placeholder="Select languages" display="chip" />
+        <label for="languages">Language*</label>
+        <Dropdown id="language" v-model="attack.parameters.language" :options="languageOptions" 
+                 optionLabel="name" optionValue="value" placeholder="Select a language" 
+                 :class="{'p-invalid': submitted && !attack.parameters.language}" />
+        <small class="p-error" v-if="submitted && !attack.parameters.language">Language is required.</small>
+      </div>
+      
+      <div class="form-group" v-if="attack.algorithm_type === 'token_limit'">
+        <label for="filler_text">Filler Text (Optional)</label>
+        <Textarea id="filler_text" v-model="attack.parameters.filler_text" rows="3" 
+                 placeholder="Leave empty to use default filler text" />
+        
+        <label for="repeat" class="mt-3">Repeat Count</label>
+        <InputText id="repeat" v-model.number="attack.parameters.repeat" type="number" min="1" />
+      </div>
+      
+      <!-- JSON Injection doesn't require additional parameters -->
+      <div class="form-group" v-if="attack.algorithm_type === 'json_injection'">
+        <div class="p-text-secondary">
+          <i class="pi pi-info-circle mr-2"></i>
+          JSON Injection attack doesn't require additional parameters.
+        </div>
       </div>
       
       <template #footer>
@@ -154,7 +173,7 @@
 </template>
 
 <script>
-import { ref, onMounted, reactive, computed, watch } from 'vue';
+import { ref, onMounted, reactive, computed, watch, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import { FilterMatchMode } from 'primevue/api';
@@ -197,6 +216,8 @@ export default {
       { name: 'Template Based', value: 'template_based' },
       { name: 'Character Stuffing', value: 'character_stuffing' },
       { name: 'Multi-language', value: 'multi_language' },
+      { name: 'Token Limit', value: 'token_limit' },
+      { name: 'JSON Injection', value: 'json_injection' },
       { name: 'Custom', value: 'custom' }
     ];
     
@@ -278,7 +299,9 @@ export default {
         name: '',
         description: '',
         algorithm_type: '',
-        parameters: {}
+        parameters: {
+          languages: [] // 初始化 languages 数组为空数组
+        }
       };
       submitted.value = false;
       editMode.value = false;
@@ -297,6 +320,11 @@ export default {
         }
       }
       
+      // Ensure parameters is always an object
+      if (!attack.value.parameters) {
+        attack.value.parameters = {};
+      }
+      
       submitted.value = false;
       editMode.value = true;
       attackDialog.value = true;
@@ -305,12 +333,29 @@ export default {
     const hideDialog = () => {
       attackDialog.value = false;
       submitted.value = false;
+      // Reset attack object to prevent stale references
+      attack.value = {
+        name: '',
+        description: '',
+        algorithm_type: '',
+        parameters: {}
+      };
     };
     
     const saveAttack = async () => {
       submitted.value = true;
       
       if (!attack.value.name || !attack.value.algorithm_type) {
+        return;
+      }
+      
+      // Ensure parameters is an object
+      if (!attack.value.parameters) {
+        attack.value.parameters = {};
+      }
+      
+      // 验证必填参数
+      if (attack.value.algorithm_type === 'multi_language' && !attack.value.parameters.language) {
         return;
       }
       
@@ -365,7 +410,22 @@ export default {
     };
     
     const confirmDeleteAttack = (data) => {
-      attack.value = data;
+      attack.value = { ...data };
+      
+      // Parse parameters if it's a string
+      if (typeof attack.value.parameters === 'string') {
+        try {
+          attack.value.parameters = JSON.parse(attack.value.parameters);
+        } catch (e) {
+          attack.value.parameters = {};
+        }
+      }
+      
+      // Ensure parameters is always an object
+      if (!attack.value.parameters) {
+        attack.value.parameters = {};
+      }
+      
       deleteAttackDialog.value = true;
     };
     
@@ -440,7 +500,7 @@ export default {
     };
     
     const executeAttack = (data) => {
-      router.push({ name: 'ExecuteAttack', params: { id: data.id } });
+      router.push({ name: 'execute-attack', query: { id: data.id } });
     };
     
     const filterByAlgorithmType = () => {
@@ -449,9 +509,65 @@ export default {
       selectAll.value = false;
     };
     
+    // Watch for algorithm_type changes to initialize appropriate parameters
+    watch(() => attack.value.algorithm_type, (newType, oldType) => {
+      // Ensure parameters is an object
+      if (typeof attack.value.parameters === 'string') {
+        try {
+          attack.value.parameters = JSON.parse(attack.value.parameters);
+        } catch (e) {
+          attack.value.parameters = {};
+        }
+      }
+      
+      if (!attack.value.parameters) {
+        attack.value.parameters = {};
+      }
+      
+      // If algorithm type changed, reset parameters to avoid conflicts
+      if (oldType && newType !== oldType) {
+        attack.value.parameters = {};
+      }
+      
+      // Initialize parameters based on algorithm type
+      if (newType === 'template_based') {
+        attack.value.parameters = {
+          template_type: attack.value.parameters.template_type || ''
+        };
+      } else if (newType === 'character_stuffing') {
+        attack.value.parameters = {
+          char: attack.value.parameters.char || '.',
+          num_chars: attack.value.parameters.num_chars || 300
+        };
+      } else if (newType === 'multi_language') {
+        attack.value.parameters = {
+          language: attack.value.parameters.language || ''
+        };
+      } else if (newType === 'token_limit') {
+        attack.value.parameters = {
+          filler_text: attack.value.parameters.filler_text || '',
+          repeat: attack.value.parameters.repeat || 10
+        };
+      } else if (newType === 'json_injection') {
+        // JSON Injection doesn't need parameters
+        attack.value.parameters = {};
+      } else {
+        // For other algorithm types, just ensure parameters is an empty object
+        attack.value.parameters = {};
+      }
+    });
+    
     // Lifecycle hooks
     onMounted(() => {
       fetchAttacks();
+    });
+    
+    // Clean up when component is unmounted
+    onBeforeUnmount(() => {
+      // Close any open dialogs to prevent DOM-related errors
+      attackDialog.value = false;
+      deleteAttackDialog.value = false;
+      deleteAttacksDialog.value = false;
     });
     
     return {

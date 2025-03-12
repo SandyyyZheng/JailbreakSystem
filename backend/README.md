@@ -7,7 +7,7 @@ This is the backend for the Jailbreak System, a platform for testing and evaluat
 1. Create a virtual environment:
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # On Windows: venv/Scripts/activate
 ```
 
 2. Install dependencies:
@@ -43,11 +43,6 @@ backend/
 Development mode:
 ```bash
 python app.py
-```
-
-Production mode:
-```bash
-gunicorn app:app
 ```
 
 The server will start on http://localhost:5001
@@ -104,8 +99,8 @@ The system uses SQLite for development. The database file is located at `databas
 ## Technology Stack
 
 - Python 3.8+
-- Flask
-- SQLAlchemy
-- PostgreSQL/SQLite
-- JWT for authentication
-- OpenAI API integration 
+- Flask for Web framework
+- SQLite for Database
+- LLM API Integrations:
+  - OpenAI API (GPT)
+  - Anthropic API (Claude) 

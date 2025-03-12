@@ -45,13 +45,6 @@ npm run build
 frontend/
 ├── src/
 │   ├── views/          # Page components
-│   │   ├── HomeView.vue
-│   │   ├── AttacksView.vue
-│   │   ├── PromptsView.vue
-│   │   ├── ResultsView.vue
-│   │   ├── StatsView.vue
-│   │   ├── ExecuteAttackView.vue
-│   │   └── AttackDetailView.vue
 │   ├── router/         # Vue Router configuration
 │   │   └── index.js
 │   ├── store/          # Vuex state management

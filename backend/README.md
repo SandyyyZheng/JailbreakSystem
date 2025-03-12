@@ -21,10 +21,33 @@ cp .env.example .env
 ```
 Then edit the `.env` file with your API keys and configuration.
 
+## Project Structure
+
+```
+backend/
+├── app.py                # Main application entry point
+├── models/               # Database models
+├── controllers/          # API controllers
+├── utils/                # Utility functions
+│   ├── jailbreak_algorithms.py # Jailbreak implementation
+│   └── llm_api.py        # LLM API integration
+├── database/             # Database files
+│   ├── jailbreak.db      # SQLite database
+│   └── db_setup.py       # Database initialization
+├── requirements.txt      # Python dependencies
+└── .env.example          # Environment variables template
+```
+
 ## Running the Server
 
+Development mode:
 ```bash
 python app.py
+```
+
+Production mode:
+```bash
+gunicorn app:app
 ```
 
 The server will start on http://localhost:5001
@@ -60,9 +83,10 @@ The server will start on http://localhost:5001
 
 ## Implementing Custom Jailbreak Algorithms
 
-To implement your own black-box attack algorithms, edit the `utils/jailbreak_algorithms.py` file and add your custom functions in the TODO section.
+To implement your own black-box attack algorithms:
 
-Example:
+1. Navigate to `utils/jailbreak_algorithms.py`
+2. Add your custom function:
 
 ```python
 def my_custom_jailbreak(prompt, param1="value1", param2="value2"):
@@ -75,4 +99,13 @@ algorithms["my_custom_algorithm"] = my_custom_jailbreak
 
 ## Database
 
-The system uses SQLite for simplicity. The database file is located at `database/jailbreak.db`. 
+The system uses SQLite for development. The database file is located at `database/jailbreak.db`.
+
+## Technology Stack
+
+- Python 3.8+
+- Flask
+- SQLAlchemy
+- PostgreSQL/SQLite
+- JWT for authentication
+- OpenAI API integration 

@@ -138,6 +138,21 @@
         </div>
       </div>
       
+      <!-- ASCII Art 参数设置 -->
+      <div class="form-group" v-if="attack.algorithm_type === 'ascii_art'">
+        <label for="ascii_style">ASCII Art Style</label>
+        <Dropdown id="ascii_style" v-model="attack.parameters.style" :options="asciiArtStyleOptions" 
+                 optionLabel="name" optionValue="value" placeholder="Select an ASCII art style" />
+        
+        <div class="mt-3">
+          <label for="detect_sensitive" class="mr-2">Auto-detect Sensitive Words</label>
+          <InputSwitch id="detect_sensitive" v-model="attack.parameters.detect_sensitive" />
+          <small class="block mt-1">
+            When enabled, the system will automatically identify and mask sensitive words in the prompt.
+          </small>
+        </div>
+      </div>
+      
       <template #footer>
         <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="hideDialog" />
         <Button label="Save" icon="pi pi-check" class="p-button-text" @click="saveAttack" />
@@ -218,6 +233,7 @@ export default {
       { name: 'Multi-language', value: 'multi_language' },
       { name: 'Token Limit', value: 'token_limit' },
       { name: 'JSON Injection', value: 'json_injection' },
+      { name: 'ASCII Art', value: 'ascii_art' },
       { name: 'Custom', value: 'custom' }
     ];
     
@@ -232,6 +248,12 @@ export default {
       { name: 'RogueGPT Roleplay', value: 'roleplay' },
       { name: 'Developer Mode', value: 'developer_mode' },
       { name: 'Token Manipulation', value: 'token_manipulation' }
+    ];
+    
+    // ASCII Art style options
+    const asciiArtStyleOptions = [
+      { name: '5x5 Grid', value: '5x5' },
+      { name: 'Block Style', value: 'block' }
     ];
     
     // Language options
@@ -552,6 +574,11 @@ export default {
       } else if (newType === 'json_injection') {
         // JSON Injection doesn't need parameters
         attack.value.parameters = {};
+      } else if (newType === 'ascii_art') {
+        attack.value.parameters = {
+          style: attack.value.parameters.style || 'block',
+          detect_sensitive: attack.value.parameters.detect_sensitive !== undefined ? attack.value.parameters.detect_sensitive : true
+        };
       } else {
         // For other algorithm types, just ensure parameters is an empty object
         attack.value.parameters = {};
@@ -586,6 +613,7 @@ export default {
       algorithmTypes,
       algorithmTypeOptions,
       templateTypes,
+      asciiArtStyleOptions,
       languageOptions,
       selectedAlgorithmType,
       rows,

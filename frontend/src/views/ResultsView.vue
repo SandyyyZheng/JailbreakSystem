@@ -142,15 +142,39 @@
         
         <TabView>
           <TabPanel header="Original Prompt">
-            <div class="prompt-display">{{ selectedResult.original_prompt }}</div>
+            <div class="prompt-container">
+              <div class="copy-button-container">
+                <Button icon="pi pi-copy" class="p-button-rounded p-button-text copy-button" 
+                        @click="copyToClipboard(selectedResult.original_prompt)" />
+              </div>
+              <div class="prompt-display">
+                {{ selectedResult.original_prompt }}
+              </div>
+            </div>
           </TabPanel>
           
           <TabPanel header="Jailbreak Prompt">
-            <div class="prompt-display jailbreak-prompt">{{ selectedResult.jailbreak_prompt }}</div>
+            <div class="prompt-container">
+              <div class="copy-button-container">
+                <Button icon="pi pi-copy" class="p-button-rounded p-button-text copy-button" 
+                        @click="copyToClipboard(selectedResult.jailbreak_prompt)" />
+              </div>
+              <div class="prompt-display jailbreak-prompt">
+                {{ selectedResult.jailbreak_prompt }}
+              </div>
+            </div>
           </TabPanel>
           
           <TabPanel header="Model Response" v-if="selectedResult.model_response">
-            <div class="prompt-display model-response">{{ selectedResult.model_response }}</div>
+            <div class="prompt-container">
+              <div class="copy-button-container">
+                <Button icon="pi pi-copy" class="p-button-rounded p-button-text copy-button" 
+                        @click="copyToClipboard(selectedResult.model_response)" />
+              </div>
+              <div class="prompt-display model-response">
+                {{ selectedResult.model_response }}
+              </div>
+            </div>
           </TabPanel>
         </TabView>
       </div>
@@ -465,6 +489,24 @@ export default {
       }
     };
     
+    // 复制到剪贴板功能
+    const copyToClipboard = (text) => {
+      if (!text) return;
+      const tempInput = document.createElement('textarea');
+      tempInput.value = text;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      
+      toast.add({
+        severity: 'success',
+        summary: 'Success',
+        detail: 'Text copied to clipboard',
+        life: 3000
+      });
+    };
+    
     // Lifecycle hooks
     onMounted(async () => {
       await Promise.all([fetchResults(), fetchAttacks()]);
@@ -498,7 +540,8 @@ export default {
       formatDate,
       toggleSelectAll,
       confirmDeleteSelectedResults,
-      deleteSelectedResults
+      deleteSelectedResults,
+      copyToClipboard
     };
   }
 }
@@ -591,24 +634,61 @@ export default {
   min-width: 120px;
 }
 
+.prompt-container {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.copy-button-container {
+  position: absolute;
+  top: 0.5rem;
+  right: 1.5rem; /* 增加右边距，避免被滚动条遮挡 */
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.prompt-container:hover .copy-button-container {
+  opacity: 1;
+}
+
 .prompt-display {
   padding: 1rem;
   background-color: #f8f9fa;
   border: 1px solid #dee2e6;
   border-radius: 4px;
-  margin-bottom: 1rem;
   white-space: pre-wrap;
   font-family: monospace;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .jailbreak-prompt {
   background-color: #ffe8e8;
   border: 1px solid #ffcaca;
+  /* 对于ASCII艺术攻击，需要保持原始格式并允许横向滚动 */
+  white-space: pre;
+  overflow-x: auto;
+  max-width: 100%;
+  /* 增大水平内容的容器宽度 */
+  min-width: 100%;
 }
 
 .model-response {
   background-color: #e8f4ff;
   border: 1px solid #c5e1ff;
+}
+
+.copy-button {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .confirmation-content {

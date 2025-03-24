@@ -7,58 +7,60 @@
     <div class="grid">
       <!-- Attack Configuration Card -->
       <div class="col-12 md:col-5">
-        <Card>
+        <Card class="config-card">
           <template #title>
             <h3>Attack Configuration</h3>
           </template>
           <template #content>
-            <div v-if="loading" class="loading-container">
-              <ProgressSpinner />
-            </div>
-            <div v-else>
-              <div class="form-group">
-                <label for="attack">Select Attack</label>
-                <Dropdown id="attack" v-model="selectedAttack" :options="attacks" optionLabel="name" 
-                          placeholder="Select an attack" class="w-full" />
+            <div class="config-content">
+              <div v-if="loading" class="loading-container">
+                <ProgressSpinner />
               </div>
-              
-              <div class="form-group">
-                <label for="prompt-source">Prompt Source</label>
-                <div class="p-inputgroup">
-                  <span class="p-inputgroup-addon">
-                    <i class="pi pi-file"></i>
-                  </span>
-                  <Dropdown id="prompt-source" v-model="promptSource" :options="promptSources" optionLabel="name" 
-                            placeholder="Select prompt source" class="w-full" />
+              <div v-else>
+                <div class="form-group">
+                  <label for="attack">Select Attack</label>
+                  <Dropdown id="attack" v-model="selectedAttack" :options="attacks" optionLabel="name" 
+                            placeholder="Select an attack" class="w-full" />
                 </div>
-              </div>
-              
-              <div v-if="promptSource && promptSource.value === 'existing'" class="form-group">
-                <label for="prompt">Select Prompt</label>
-                <Dropdown id="prompt" v-model="selectedPrompt" :options="prompts" optionLabel="content" 
-                          placeholder="Select a prompt" class="w-full" />
-              </div>
+                
+                <div class="form-group">
+                  <label for="prompt-source">Prompt Source</label>
+                  <div class="p-inputgroup">
+                    <span class="p-inputgroup-addon">
+                      <i class="pi pi-file"></i>
+                    </span>
+                    <Dropdown id="prompt-source" v-model="promptSource" :options="promptSources" optionLabel="name" 
+                              placeholder="Select prompt source" class="w-full" />
+                  </div>
+                </div>
+                
+                <div v-if="promptSource && promptSource.value === 'existing'" class="form-group">
+                  <label for="prompt">Select Prompt</label>
+                  <Dropdown id="prompt" v-model="selectedPrompt" :options="prompts" optionLabel="content" 
+                            placeholder="Select a prompt" class="w-full" />
+                </div>
 
-              <div v-if="promptSource && promptSource.value === 'category'" class="form-group">
-                <label for="category">Select Category</label>
-                <Dropdown id="category" v-model="selectedCategory" :options="categories" optionLabel="name"
-                          placeholder="Select a category" class="w-full" />
-                <small class="text-secondary">All prompts in this category will be tested</small>
-              </div>
-              
-              <div v-if="promptSource && promptSource.value === 'custom'" class="form-group">
-                <label for="custom-prompt">Custom Prompt</label>
-                <Textarea id="custom-prompt" v-model="customPrompt" rows="5" class="w-full" 
-                          placeholder="Enter your prompt here..." />
-              </div>
-              
-              <div class="form-group">
-                <Button v-if="promptSource && promptSource.value === 'category'"
-                        label="Execute Batch Attack" icon="pi pi-bolt" class="p-button-primary w-full" 
-                        @click="executeBatchAttack" :disabled="!isBatchFormValid" />
-                <Button v-else
-                        label="Execute Attack" icon="pi pi-bolt" class="p-button-primary w-full" 
-                        @click="executeAttack" :disabled="!isFormValid" />
+                <div v-if="promptSource && promptSource.value === 'category'" class="form-group">
+                  <label for="category">Select Category</label>
+                  <Dropdown id="category" v-model="selectedCategory" :options="categories" optionLabel="name"
+                            placeholder="Select a category" class="w-full" />
+                  <small class="text-secondary">All prompts in this category will be tested</small>
+                </div>
+                
+                <div v-if="promptSource && promptSource.value === 'custom'" class="form-group">
+                  <label for="custom-prompt">Custom Prompt</label>
+                  <Textarea id="custom-prompt" v-model="customPrompt" rows="5" class="w-full" 
+                            placeholder="Enter your prompt here..." />
+                </div>
+                
+                <div class="form-group">
+                  <Button v-if="promptSource && promptSource.value === 'category'"
+                          label="Execute Batch Attack" icon="pi pi-bolt" class="p-button-primary w-full" 
+                          @click="executeBatchAttack" :disabled="!isBatchFormValid" />
+                  <Button v-else
+                          label="Execute Attack" icon="pi pi-bolt" class="p-button-primary w-full" 
+                          @click="executeAttack" :disabled="!isFormValid" />
+                </div>
               </div>
             </div>
           </template>
@@ -67,7 +69,7 @@
       
       <!-- Results Card -->
       <div class="col-12 md:col-7">
-        <Card>
+        <Card class="results-card">
           <template #title>
             <div class="flex justify-content-between align-items-center">
               <h3>Results</h3>
@@ -78,39 +80,39 @@
             </div>
           </template>
           <template #content>
-            <div v-if="executing" class="loading-container">
-              <ProgressSpinner />
-              <span class="ml-2">{{ executionStatus }}</span>
-            </div>
-            
-            <div v-else-if="!jailbreakResult && batchResults.length === 0" class="text-center p-4">
-              <p>Configure and execute an attack to see results here.</p>
-            </div>
-            
-            <div v-else-if="batchResults.length > 0" class="batch-results">
-              <DataTable :value="batchResults" :paginator="true" :rows="5"
-                        class="p-datatable-sm" responsiveLayout="scroll">
-                <Column field="original_prompt" header="Original Prompt">
-                  <template #body="slotProps">
-                    <div class="prompt-preview">{{ slotProps.data.original_prompt }}</div>
-                  </template>
-                </Column>
-                <Column field="success_rating" header="Harmful Score" style="width: 100px">
-                  <template #body="slotProps">
-                    <Rating v-model="slotProps.data.success_rating" :stars="5" :readonly="true" :cancel="false" />
-                  </template>
-                </Column>
-                <Column style="width: 80px">
-                  <template #body="slotProps">
-                    <Button icon="pi pi-eye" class="p-button-rounded p-button-text"
-                            @click="viewBatchResult(slotProps.data)" />
-                  </template>
-                </Column>
-              </DataTable>
-
-              <!-- Result Detail Dialog -->
-              <Dialog v-model:visible="resultDetailDialog" :header="'Attack Result Details'" :style="{width: '80vw'}"
-                      :modal="true" class="p-fluid">
+            <div class="results-content">
+              <div v-if="executing" class="loading-container">
+                <ProgressSpinner />
+                <span class="ml-2">{{ executionStatus }}</span>
+              </div>
+              
+              <div v-else-if="!jailbreakResult && batchResults.length === 0" class="text-center p-4">
+                <p>Configure and execute an attack to see results here.</p>
+              </div>
+              
+              <div v-else-if="batchResults.length > 0" class="batch-results">
+                <DataTable :value="batchResults" :paginator="true" :rows="5"
+                          class="p-datatable-sm" responsiveLayout="scroll">
+                  <Column field="original_prompt" header="Original Prompt">
+                    <template #body="slotProps">
+                      <div class="prompt-preview">{{ slotProps.data.original_prompt }}</div>
+                    </template>
+                  </Column>
+                  <Column field="success_rating" header="Harmful Score" style="width: 100px">
+                    <template #body="slotProps">
+                      <Rating v-model="slotProps.data.success_rating" :stars="5" :readonly="true" :cancel="false" />
+                    </template>
+                  </Column>
+                  <Column style="width: 80px">
+                    <template #body="slotProps">
+                      <Button icon="pi pi-eye" class="p-button-rounded p-button-text"
+                              @click="viewBatchResult(slotProps.data)" />
+                    </template>
+                  </Column>
+                </DataTable>
+              </div>
+              
+              <div v-else>
                 <div class="result-tabs">
                   <div class="tab-header">
                     <div 
@@ -123,80 +125,120 @@
                     </div>
                   </div>
                   <div class="tab-content">
-                    <div v-if="activeTabIndex === 0" class="prompt-display">
-                      {{ jailbreakResult?.original_prompt }}
+                    <div v-if="activeTabIndex === 0" class="prompt-container">
+                      <div class="copy-button-container">
+                        <Button icon="pi pi-copy" class="p-button-rounded p-button-text copy-button" 
+                                @click="copyToClipboard(jailbreakResult?.original_prompt)" />
+                      </div>
+                      <div class="prompt-display">
+                        {{ jailbreakResult?.original_prompt }}
+                      </div>
                     </div>
-                    <div v-if="activeTabIndex === 1" class="prompt-display jailbreak-prompt">
-                      {{ jailbreakResult?.jailbreak_prompt }}
+                    <div v-if="activeTabIndex === 1" class="prompt-container">
+                      <div class="copy-button-container">
+                        <Button icon="pi pi-copy" class="p-button-rounded p-button-text copy-button" 
+                                @click="copyToClipboard(jailbreakResult?.jailbreak_prompt)" />
+                      </div>
+                      <div class="prompt-display jailbreak-prompt">
+                        {{ jailbreakResult?.jailbreak_prompt }}
+                      </div>
                     </div>
-                    <div v-if="activeTabIndex === 2" class="prompt-display model-response">
-                      {{ modelResponse }}
+                    <div v-if="activeTabIndex === 2" class="prompt-container">
+                      <div class="copy-button-container">
+                        <Button icon="pi pi-copy" class="p-button-rounded p-button-text copy-button" 
+                                @click="copyToClipboard(modelResponse)" />
+                      </div>
+                      <div class="prompt-display model-response">
+                        {{ modelResponse }}
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div class="rating-container mt-3">
-                  <label class="mr-2">Harmful Score:</label>
-                  <Rating v-model="successRating" :stars="5" :readonly="true" :cancel="false" />
-                  <span class="ml-2">{{ successRating }}/5</span>
-                </div>
-              </Dialog>
-            </div>
-            
-            <div v-else>
-              <div class="result-tabs">
-                <div class="tab-header">
-                  <div 
-                    v-for="(tab, index) in tabs" 
-                    :key="index" 
-                    :class="['tab-item', { active: activeTabIndex === index }]"
-                    @click="activeTabIndex = index"
-                  >
-                    {{ tab.header }}
+                
+                <Divider />
+                
+                <div v-if="modelResponse" class="form-group">
+                  <label for="success-rating">Harmful Score (1-5)</label>
+                  <div class="rating-container mb-2">
+                    <Rating v-model="successRating" :stars="5" :cancel="false" />
+                    <span class="ml-2">{{ successRating }}/5</span>
                   </div>
-                </div>
-                <div class="tab-content">
-                  <div v-if="activeTabIndex === 0" class="prompt-display">
-                    {{ jailbreakResult.original_prompt }}
+                  <div class="p-inputgroup">
+                    <InputText id="success-rating" v-model.number="successRating" type="number" min="1" max="5" />
+                    <Button label="Save Result" icon="pi pi-save" @click="saveResult" />
                   </div>
-                  <div v-if="activeTabIndex === 1" class="prompt-display jailbreak-prompt">
-                    {{ jailbreakResult.jailbreak_prompt }}
-                  </div>
-                  <div v-if="activeTabIndex === 2 && modelResponse" class="prompt-display model-response">
-                    {{ modelResponse }}
-                  </div>
+                  <small>Rate how harmful the jailbreak was (5 = extremely harmful)</small>
                 </div>
-              </div>
-              
-              <Divider />
-              
-              <div v-if="modelResponse" class="form-group">
-                <label for="success-rating">Harmful Score (1-5)</label>
-                <div class="rating-container mb-2">
-                  <Rating v-model="successRating" :stars="5" :cancel="false" />
-                  <span class="ml-2">{{ successRating }}/5</span>
+                
+                <div v-else class="form-group">
+                  <Button label="Test with LLM" icon="pi pi-send" class="p-button-secondary w-full" 
+                          @click="testWithLLM" :disabled="!jailbreakResult" />
+                  <small>This will send the jailbreak prompt to an LLM API to test its effectiveness</small>
                 </div>
-                <div class="p-inputgroup">
-                  <InputText id="success-rating" v-model.number="successRating" type="number" min="1" max="5" />
-                  <Button label="Save Result" icon="pi pi-save" @click="saveResult" />
-                </div>
-                <small>Rate how harmful the jailbreak was (5 = extremely harmful)</small>
-              </div>
-              
-              <div v-else class="form-group">
-                <Button label="Test with LLM" icon="pi pi-send" class="p-button-secondary w-full" 
-                        @click="testWithLLM" :disabled="!jailbreakResult" />
-                <small>This will send the jailbreak prompt to an LLM API to test its effectiveness</small>
               </div>
             </div>
           </template>
         </Card>
       </div>
     </div>
+
+    <!-- Result Detail Dialog -->
+    <Dialog v-model:visible="resultDetailDialog" :header="'Attack Result Details'" :style="{width: '80vw'}"
+            :modal="true" class="p-fluid result-detail-dialog">
+      <div v-if="jailbreakResult" class="dialog-content">
+        <div class="result-tabs">
+          <div class="tab-header">
+            <div 
+              v-for="(tab, index) in tabs" 
+              :key="index" 
+              :class="['tab-item', { active: activeTabIndex === index }]"
+              @click="activeTabIndex = index"
+            >
+              {{ tab.header }}
+            </div>
+          </div>
+          <div class="tab-content">
+            <div v-if="activeTabIndex === 0" class="prompt-container">
+              <div class="copy-button-container">
+                <Button icon="pi pi-copy" class="p-button-rounded p-button-text copy-button" 
+                        @click="copyToClipboard(jailbreakResult?.original_prompt)" />
+              </div>
+              <div class="prompt-display">
+                {{ jailbreakResult?.original_prompt }}
+              </div>
+            </div>
+            <div v-if="activeTabIndex === 1" class="prompt-container">
+              <div class="copy-button-container">
+                <Button icon="pi pi-copy" class="p-button-rounded p-button-text copy-button" 
+                        @click="copyToClipboard(jailbreakResult?.jailbreak_prompt)" />
+              </div>
+              <div class="prompt-display jailbreak-prompt">
+                {{ jailbreakResult?.jailbreak_prompt }}
+              </div>
+            </div>
+            <div v-if="activeTabIndex === 2" class="prompt-container">
+              <div class="copy-button-container">
+                <Button icon="pi pi-copy" class="p-button-rounded p-button-text copy-button" 
+                        @click="copyToClipboard(modelResponse)" />
+              </div>
+              <div class="prompt-display model-response">
+                {{ modelResponse }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="rating-container mt-3">
+          <label class="mr-2">Harmful Score:</label>
+          <Rating v-model="successRating" :stars="5" :readonly="true" :cancel="false" />
+          <span class="ml-2">{{ successRating }}/5</span>
+        </div>
+      </div>
+    </Dialog>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useToast } from 'primevue/usetoast'
 import { useRoute } from 'vue-router'
@@ -369,6 +411,7 @@ export default {
       } finally {
         executing.value = false
         executionStatus.value = ''
+        setTimeout(adjustCardHeights, 100)
       }
     }
 
@@ -390,6 +433,7 @@ export default {
       successRating.value = result.success_rating
       activeTabIndex.value = 0
       resultDetailDialog.value = true
+      setTimeout(adjustCardHeights, 100)
     }
     
     const executeAttack = async () => {
@@ -428,6 +472,7 @@ export default {
         console.error('Error executing attack:', error)
       } finally {
         executing.value = false
+        setTimeout(adjustCardHeights, 100)
       }
     }
     
@@ -461,6 +506,7 @@ export default {
         console.error('Error testing with LLM:', error)
       } finally {
         executing.value = false
+        setTimeout(adjustCardHeights, 100)
       }
     }
     
@@ -496,6 +542,44 @@ export default {
       }
     }
     
+    const copyToClipboard = (text) => {
+      if (!text) return;
+      const tempInput = document.createElement('textarea')
+      tempInput.value = text
+      document.body.appendChild(tempInput)
+      tempInput.select()
+      document.execCommand('copy')
+      document.body.removeChild(tempInput)
+      
+      toast.add({
+        severity: 'success',
+        summary: 'Success',
+        detail: 'Text copied to clipboard',
+        life: 3000
+      })
+    }
+    
+    const adjustCardHeights = () => {
+      // 获取两个卡片的内容区域
+      const configCard = document.querySelector('.config-content')
+      const resultsCard = document.querySelector('.results-content')
+      
+      if (configCard && resultsCard) {
+        // 将两个卡片的高度重置为自动，以便获取其自然高度
+        configCard.style.maxHeight = 'none'
+        resultsCard.style.maxHeight = 'none'
+        
+        // 获取配置卡片的计算高度
+        const configHeight = configCard.clientHeight
+        const resultsHeight = resultsCard.clientHeight
+        
+        // 设置两个卡片的maxHeight为较小的高度
+        const maxHeight = Math.max(configHeight, 400) // 至少400px
+        configCard.style.maxHeight = `${maxHeight}px`
+        resultsCard.style.maxHeight = `${maxHeight}px`
+      }
+    }
+    
     onMounted(() => {
       fetchData()
       
@@ -505,6 +589,17 @@ export default {
         // Set this ID to localStorage so it can be used after data is loaded
         localStorage.setItem('selectedAttackId', attackId)
       }
+      
+      // 添加卡片高度同步功能
+      setTimeout(() => {
+        adjustCardHeights()
+        window.addEventListener('resize', adjustCardHeights)
+      }, 500)
+    })
+    
+    // 添加watch监听器以在选择变化时调整高度
+    watch([selectedAttack, selectedPrompt, selectedCategory, customPrompt, activeTabIndex], () => {
+      setTimeout(adjustCardHeights, 100)
     })
     
     return {
@@ -534,7 +629,9 @@ export default {
       batchResults,
       calculateSuccessRate,
       viewBatchResult,
-      resultDetailDialog
+      resultDetailDialog,
+      copyToClipboard,
+      adjustCardHeights
     }
   }
 }
@@ -542,6 +639,24 @@ export default {
 
 <style scoped>
 /* Custom styles specific to this component */
+.prompt-container {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.copy-button-container {
+  position: absolute;
+  top: 0.5rem;
+  right: 1.5rem; /* 增加右边距，避免被滚动条遮挡 */
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.prompt-container:hover .copy-button-container {
+  opacity: 1;
+}
+
 .prompt-display {
   white-space: pre-wrap;
   font-family: monospace;
@@ -549,12 +664,19 @@ export default {
   background-color: #f8f9fa;
   border: 1px solid #dee2e6;
   border-radius: 4px;
-  margin-bottom: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .jailbreak-prompt {
   background-color: #ffe8e8;
   border: 1px solid #ffcaca;
+  /* 对于ASCII艺术攻击，需要保持原始格式并允许横向滚动 */
+  white-space: pre;
+  overflow-x: auto;
+  max-width: 100%;
+  /* 增大水平内容的容器宽度 */
+  min-width: 100%;
 }
 
 .model-response {
@@ -676,5 +798,53 @@ export default {
 :deep(.p-dialog-content) {
   max-height: 80vh;
   overflow-y: auto;
+}
+
+.copy-button {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.config-card, .results-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.config-card :deep(.p-card-content), .results-card :deep(.p-card-content) {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding: 0;
+}
+
+.config-content, .results-content {
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+
+/* 确保Attack Configuration卡片和Results卡片在同一行上的高度一致 */
+.grid > .col-12 {
+  display: flex;
+  flex-direction: column;
+}
+
+.card, .p-card {
+  flex: 1;
+}
+
+.dialog-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.dialog-content .prompt-display {
+  max-height: 300px;
 }
 </style>

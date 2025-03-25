@@ -89,7 +89,7 @@ def batch_delete_attacks():
             results["failed"] += 1
     
     return jsonify({
-        "message": f"批量删除完成。{results['deleted']} 个攻击已删除，{results['failed']} 个删除失败。",
+        "message": f"Batch deletion completed. {results['deleted']} attacks deleted, {results['failed']} failed.",
         "results": results
     })
 
@@ -117,7 +117,7 @@ def execute_attack():
     algorithm_type = attack['algorithm_type']
     parameters = json.loads(attack['parameters']) if attack['parameters'] else {}
 
-    # 调用jailbreak_algorithms.py中的函数
+    # Call the function in jailbreak_algorithms.py
     jailbreak_prompt = apply_jailbreak(prompt, algorithm_type, **parameters)
     
     return jsonify({

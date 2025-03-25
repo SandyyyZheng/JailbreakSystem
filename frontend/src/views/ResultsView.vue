@@ -23,11 +23,11 @@
         </div>
       </div>
       
-      <!-- 添加批量操作工具栏 -->
+      <!-- Add bulk operation toolbar -->
       <div class="bulk-actions" v-if="selectedResults.length > 0">
-        <span class="selected-count">已选择 {{ selectedResults.length }} 项</span>
+        <span class="selected-count">{{ selectedResults.length }} item(s) selected</span>
         <div class="bulk-actions-buttons">
-          <Button label="批量删除" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelectedResults" />
+          <Button label="Batch Delete" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelectedResults" />
         </div>
       </div>
       
@@ -192,15 +192,15 @@
       </template>
     </Dialog>
     
-    <!-- 批量删除确认对话框 -->
-    <Dialog v-model:visible="deleteResultsDialog" :style="{width: '450px'}" header="确认删除" :modal="true">
+    <!-- Batch delete confirmation dialog -->
+    <Dialog v-model:visible="deleteResultsDialog" :style="{width: '450px'}" header="Confirm Deletion" :modal="true">
       <div class="confirmation-content">
         <i class="pi pi-exclamation-triangle p-mr-3" style="font-size: 2rem" />
-        <span>确定要删除选中的 {{ selectedResults.length }} 个结果吗？</span>
+        <span>Are you sure you want to delete the selected {{ selectedResults.length }} result(s)?</span>
       </div>
       <template #footer>
-        <Button label="取消" icon="pi pi-times" class="p-button-text" @click="deleteResultsDialog = false" />
-        <Button label="确定删除" icon="pi pi-check" class="p-button-danger p-button-text" @click="deleteSelectedResults" />
+        <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="deleteResultsDialog = false" />
+        <Button label="Delete" icon="pi pi-check" class="p-button-danger p-button-text" @click="deleteSelectedResults" />
       </template>
     </Dialog>
     
@@ -274,7 +274,7 @@ export default {
     
     const fetchCategories = async () => {
       try {
-        // 获取所有结果中的唯一类别
+        // Get unique categories from all results
         const uniqueCategories = [...new Set(results.value
           .map(result => result.category)
           .filter(Boolean))];
@@ -283,6 +283,11 @@ export default {
           { name: 'All Categories', value: null },
           ...uniqueCategories.map(category => ({ name: category, value: category }))
         ];
+        
+        // Ensure selectedCategory has a default value
+        if (!selectedCategory.value) {
+          selectedCategory.value = categories.value[0];
+        }
       } catch (error) {
         console.error('Error processing categories:', error);
       }
@@ -316,7 +321,7 @@ export default {
         
         deleteResultDialog.value = false;
         await fetchResults(
-          selectedAttack.value?.id === null ? null : selectedAttack.value?.id,
+          selectedAttack.value?.id,
           selectedCategory.value?.value
         );
       } catch (error) {
@@ -332,7 +337,7 @@ export default {
     
     const updateRating = async () => {
       try {
-        // 确保评分在1-5的范围内
+        // Ensure rating is within 1-5 range
         const validRating = Math.min(Math.max(parseInt(editedRating.value) || 5, 1), 5);
         editedRating.value = validRating;
         
@@ -373,28 +378,22 @@ export default {
     
     const filterByAttack = () => {
       const attackId = selectedAttack.value?.id;
-      const category = selectedCategory.value?.name !== 'All Categories' ? selectedCategory.value?.name : null;
+      const category = selectedCategory.value?.value;
       
-      fetchResults({
-        attack_id: attackId,
-        category: category
-      });
+      fetchResults(attackId, category);
       
-      // 重置选择状态
+      // Reset selection state
       selectedResults.value = [];
       selectAll.value = false;
     };
     
     const filterByCategory = () => {
       const attackId = selectedAttack.value?.id;
-      const category = selectedCategory.value?.name !== 'All Categories' ? selectedCategory.value?.name : null;
+      const category = selectedCategory.value?.value;
       
-      fetchResults({
-        attack_id: attackId,
-        category: category
-      });
+      fetchResults(attackId, category);
       
-      // 重置选择状态
+      // Reset selection state
       selectedResults.value = [];
       selectAll.value = false;
     };
@@ -428,14 +427,14 @@ export default {
       }
     };
     
-    // 监听选中项变化，更新全选状态
+    // Listen for selection changes to update selectAll state
     const updateSelectAllState = () => {
       selectAll.value = 
         results.value.length > 0 && 
         selectedResults.value.length === results.value.length;
     };
     
-    // 监听selectedResults变化
+    // Watch for selectedResults changes
     watch(selectedResults, () => {
       updateSelectAllState();
     });
@@ -446,8 +445,8 @@ export default {
       } else {
         toast.add({
           severity: 'warn',
-          summary: '警告',
-          detail: '请先选择要删除的结果',
+          summary: 'Warning',
+          detail: 'Please select results to delete',
           life: 3000
         });
       }
@@ -462,8 +461,8 @@ export default {
         
         toast.add({
           severity: 'success',
-          summary: '删除成功',
-          detail: `已成功删除 ${result.results.deleted} 个结果${result.results.failed > 0 ? `，${result.results.failed} 个删除失败` : ''}`,
+          summary: 'Success',
+          detail: `Successfully deleted ${result.results.deleted} result(s)${result.results.failed > 0 ? `, ${result.results.failed} failed` : ''}`,
           life: 3000
         });
         
@@ -472,16 +471,16 @@ export default {
         selectAll.value = false;
         
         // Refresh results
-        await fetchResults({
-          attack_id: selectedAttack.value?.id,
-          category: selectedCategory.value?.name !== 'All Categories' ? selectedCategory.value?.name : null
-        });
+        await fetchResults(
+          selectedAttack.value?.id,
+          selectedCategory.value?.value
+        );
       } catch (error) {
         console.error('Error deleting selected results:', error);
         toast.add({
           severity: 'error',
-          summary: '删除失败',
-          detail: '删除结果时发生错误',
+          summary: 'Error',
+          detail: 'An error occurred while deleting results',
           life: 3000
         });
       } finally {
@@ -489,7 +488,7 @@ export default {
       }
     };
     
-    // 复制到剪贴板功能
+    // Copy to clipboard functionality
     const copyToClipboard = (text) => {
       if (!text) return;
       const tempInput = document.createElement('textarea');
@@ -596,7 +595,7 @@ export default {
   width: 100%;
 }
 
-/* 固定下拉框宽度 */
+/* Fixed dropdown width */
 :deep(.fixed-width-dropdown) {
   width: 100%;
 }
@@ -642,7 +641,7 @@ export default {
 .copy-button-container {
   position: absolute;
   top: 0.5rem;
-  right: 1.5rem; /* 增加右边距，避免被滚动条遮挡 */
+  right: 1.5rem; /* Increase right margin to avoid being covered by scrollbar */
   z-index: 10;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
@@ -666,11 +665,11 @@ export default {
 .jailbreak-prompt {
   background-color: #ffe8e8;
   border: 1px solid #ffcaca;
-  /* 对于ASCII艺术攻击，需要保持原始格式并允许横向滚动 */
+  /* For ASCII art attacks, need to keep original format and allow horizontal scrolling */
   white-space: pre;
   overflow-x: auto;
   max-width: 100%;
-  /* 增大水平内容的容器宽度 */
+  /* Increase the width of the container for horizontal content */
   min-width: 100%;
 }
 
@@ -697,7 +696,7 @@ export default {
   justify-content: center;
 }
 
-/* 批量操作工具栏样式 */
+/* Bulk operation toolbar styles */
 .bulk-actions {
   display: flex;
   justify-content: space-between;
@@ -747,7 +746,7 @@ export default {
     width: auto;
   }
   
-  /* 桌面视图下固定下拉框宽度 */
+  /* Fixed dropdown width for desktop view */
   :deep(.fixed-width-dropdown) {
     width: 180px !important;
   }

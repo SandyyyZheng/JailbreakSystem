@@ -20,9 +20,9 @@
         
         <!-- 添加批量操作工具栏 -->
         <div class="bulk-actions" v-if="selectedAttacks.length > 0">
-          <span class="selected-count">已选择 {{ selectedAttacks.length }} 项</span>
+          <span class="selected-count">{{ selectedAttacks.length }} item(s) selected</span>
           <div class="bulk-actions-buttons">
-            <Button label="批量删除" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelectedAttacks" />
+            <Button label="Batch Delete" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelectedAttacks" />
           </div>
         </div>
         
@@ -172,14 +172,14 @@
     </Dialog>
     
     <!-- 批量删除确认对话框 -->
-    <Dialog v-model:visible="deleteAttacksDialog" :style="{width: '450px'}" header="确认删除" :modal="true">
+    <Dialog v-model:visible="deleteAttacksDialog" :style="{width: '450px'}" header="Confirm Delete" :modal="true">
       <div class="confirmation-content">
         <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-        <span>确定要删除选中的 {{ selectedAttacks.length }} 个攻击吗？</span>
+        <span>Are you sure you want to delete the selected {{ selectedAttacks.length }} attacks?</span>
       </div>
       <template #footer>
-        <Button label="取消" icon="pi pi-times" class="p-button-text" @click="deleteAttacksDialog = false" />
-        <Button label="确定删除" icon="pi pi-check" class="p-button-danger p-button-text" @click="deleteSelectedAttacks" />
+        <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="deleteAttacksDialog = false" />
+        <Button label="Confirm Delete" icon="pi pi-check" class="p-button-danger p-button-text" @click="deleteSelectedAttacks" />
       </template>
     </Dialog>
     
@@ -484,8 +484,8 @@ export default {
       } else {
         toast.add({
           severity: 'warn',
-          summary: '警告',
-          detail: '请先选择要删除的攻击',
+          summary: 'Warning',
+          detail: 'Please select attacks to delete',
           life: 3000
         });
       }
@@ -500,8 +500,8 @@ export default {
         
         toast.add({
           severity: 'success',
-          summary: '删除成功',
-          detail: `已成功删除 ${result.results.deleted} 个攻击${result.results.failed > 0 ? `，${result.results.failed} 个删除失败` : ''}`,
+          summary: 'Delete Successful',
+          detail: `Successfully deleted ${result.results.deleted} attacks${result.results.failed > 0 ? `, ${result.results.failed} deletion failed` : ''}`,
           life: 3000
         });
         
@@ -513,8 +513,8 @@ export default {
         console.error('Error deleting selected attacks:', error);
         toast.add({
           severity: 'error',
-          summary: '删除失败',
-          detail: '删除攻击时发生错误',
+          summary: 'Delete Failed',
+          detail: 'An error occurred while deleting attacks',
           life: 3000
         });
       } finally {

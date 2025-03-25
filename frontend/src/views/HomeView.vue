@@ -29,7 +29,7 @@
       <div class="col-12 md:col-6 lg:col-3">
         <div class="stats-card">
           <div class="stats-value">{{ successRate }}%</div>
-          <div class="stats-label">Success Rate</div>
+          <div class="stats-label">Overall Success Rate</div>
         </div>
       </div>
     </div>
@@ -125,6 +125,7 @@ export default {
     const successRate = computed(() => {
       if (store.state.results.length === 0) return 0
       
+      // 直接计算所有结果中成功的比例
       const successfulResults = store.state.results.filter(result => result.success_rating > 3).length
       return Math.round((successfulResults / store.state.results.length) * 100)
     })

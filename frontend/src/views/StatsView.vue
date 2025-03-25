@@ -43,18 +43,30 @@
             </div>
             <div class="stats-content">
               <div class="stats-value">{{ formatPercentage(stats.harmful_rate || 0) }}</div>
-              <div class="stats-label">Attack Success Rate</div>
+              <div class="stats-label">Overall Success Rate</div>
             </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Category Selector -->
+      <div class="card mt-4">
+        <div class="category-selector">
+          <h2>Filter by Prompt Category</h2>
+          <div class="p-field">
+            <Dropdown v-model="selectedCategory" :options="categories" 
+                     optionLabel="name" placeholder="Select a category"
+                     class="w-full md:w-20rem" />
           </div>
         </div>
       </div>
       
       <!-- Attack Stats -->
       <div class="card mt-4">
-        <h2>Attack Performance</h2>
+        <h2>Attack Performance {{ selectedCategory.name !== 'All' ? '- ' + selectedCategory.name + ' Category' : '(Average across categories)' }}</h2>
         <div class="grid">
           <div class="col-12 md:col-6">
-            <DataTable :value="stats.attack_stats || []" 
+            <DataTable :value="filteredAttackStats" 
                       responsiveLayout="scroll" 
                       class="p-datatable-sm"
                       :scrollable="true"
@@ -71,7 +83,7 @@
               </Column>
               <Column header="ASR (%)" style="width: 100px">
                 <template #body="slotProps">
-                  {{ (calculateAttackSuccessRate(slotProps.data)).toFixed(1) }}
+                  {{ formatPercentage(calculateAttackSuccessRate(slotProps.data)) }}
                 </template>
               </Column>
             </DataTable>
@@ -99,8 +111,21 @@
           
           <div class="col-12 md:col-6">
             <div class="chart-container radar-chart-container bg-light-gray">
-              <h3 class="chart-title text-center">Average Harmful Score by Algorithm Type</h3>
+              <h3 class="chart-title text-center">Average Harmful Score by Category and Algorithm Type</h3>
               <Chart type="radar" :data="radarChartData" :options="radarChartOptions" />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Category Comparison (NEW) -->
+      <div v-if="categories.length > 1" class="card mt-4">
+        <h2 class="chart-title text-left">Category Comparison</h2>
+        <div class="grid">
+          <div class="col-12">
+            <div class="chart-container stacked-bar-chart-container">
+              <h3 class="chart-title text-center">Attack Success Rate by Category</h3>
+              <Chart type="bar" :data="categoryComparisonData" :options="categoryComparisonOptions" />
             </div>
           </div>
         </div>
@@ -115,7 +140,7 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 
 export default {
@@ -127,6 +152,22 @@ export default {
     // Data
     const stats = ref({});
     const loading = ref(true);
+    const categories = ref([]);
+    const selectedCategory = ref({ name: 'All', value: 'All' });
+    
+    // 获取当前选择的类别下的攻击统计数据
+    const filteredAttackStats = computed(() => {
+      if (!stats.value) return [];
+      
+      // 处理原始数据，按照当前选择的类别过滤
+      if (selectedCategory.value.name === 'All') {
+        return stats.value.attack_stats || [];
+      } else {
+        // 从后端数据中获取特定类别的攻击数据
+        const categoryStats = stats.value.attack_stats_by_category?.[selectedCategory.value.name];
+        return categoryStats || [];
+      }
+    });
     
     // Methods
     const fetchStats = async () => {
@@ -135,6 +176,9 @@ export default {
         const response = await store.dispatch('fetchStats');
         if (response) {
           stats.value = response;
+          
+          // 设置类别选项
+          setupCategoryOptions();
         } else {
           stats.value = {
             total_results: 0,
@@ -156,6 +200,29 @@ export default {
       }
     };
     
+    // 设置类别选项
+    const setupCategoryOptions = () => {
+      // 首先添加"All"类别
+      categories.value = [
+        { name: 'All', value: 'All' },
+      ];
+      
+      // 从API结果中添加其他类别
+      if (stats.value && stats.value.categories) {
+        stats.value.categories.forEach(category => {
+          categories.value.push({ name: category, value: category });
+        });
+      } else {
+        // 如果API没有返回类别数据，使用默认类别
+        const defaultCategories = ['Illegal', 'Harmful', 'Unethical', 'Offensive'];
+        defaultCategories.forEach(category => {
+          categories.value.push({ name: category, value: category });
+        });
+      }
+      
+      selectedCategory.value = categories.value[0];
+    };
+    
     const formatPercentage = (value) => {
       return (value * 100).toFixed(1) + '%';
     };
@@ -166,18 +233,64 @@ export default {
     
     const calculateAttackSuccessRate = (attack) => {
       if (!attack || !attack.total_attempts) return 0;
-      return (attack.harmful_attempts / attack.total_attempts) * 100;
+      return (attack.harmful_attempts / attack.total_attempts);
+    };
+    
+    // 颜色分配函数
+    const getColorsList = () => {
+      return [
+        '#4f46e5', // 蓝紫色
+        '#10b981', // 绿色
+        '#f59e0b', // 橙色
+        '#ef4444', // 红色
+        '#8b5cf6', // 紫色
+        '#06b6d4', // 青色
+        '#ec4899', // 粉色
+        '#6366f1', // 靛蓝色
+        '#84cc16', // 鲜绿色
+        '#14b8a6', // 蓝绿色
+        '#f97316', // 橙红色
+        '#8d4de8', // 深紫色
+        '#0ea5e9', // 天蓝色
+        '#d946ef', // 洋红色
+        '#64748b'  // 石板灰色
+      ];
+    };
+    
+    // 根据算法类型数量分配适当的颜色
+    const assignColorsToTypes = (types) => {
+      const allColors = getColorsList();
+      
+      // 为每个类型分配一个不同的颜色
+      return types.map((type, index) => {
+        // 确保颜色不会重复，如果超出可用颜色数量则循环使用
+        return allColors[index % allColors.length];
+      });
+    };
+    
+    // 为类别分配颜色
+    const assignColorsByCategory = (categories) => {
+      const categoryColors = {};
+      const allColors = getColorsList();
+      
+      categories.forEach((category, index) => {
+        if (category !== 'All') {
+          categoryColors[category] = allColors[index % allColors.length];
+        }
+      });
+      
+      return categoryColors;
     };
     
     // Chart data
     const barChartData = computed(() => {
-      if (!stats.value || !stats.value.attack_stats) {
+      if (!filteredAttackStats.value || filteredAttackStats.value.length === 0) {
         return { labels: [], datasets: [{ label: 'Attack Success Rate (%)', backgroundColor: '#4f46e5', data: [] }] };
       }
       
-      const labels = stats.value.attack_stats.map(attack => attack.name);
-      const harmfulRates = stats.value.attack_stats.map(attack => 
-        calculateAttackSuccessRate(attack)
+      const labels = filteredAttackStats.value.map(attack => attack.name);
+      const harmfulRates = filteredAttackStats.value.map(attack => 
+        calculateAttackSuccessRate(attack) * 100
       );
       
       return {
@@ -218,19 +331,19 @@ export default {
     };
     
     const pieChartData = computed(() => {
-      if (!stats.value || !stats.value.attack_stats) {
+      if (!filteredAttackStats.value || filteredAttackStats.value.length === 0) {
         return { 
           labels: [], 
           datasets: [{ 
             data: [], 
-            backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] 
+            backgroundColor: getColorsList().slice(0, 5)
           }] 
         };
       }
       
       // Group attacks by algorithm type
       const algorithmTypes = {};
-      stats.value.attack_stats.forEach(attack => {
+      filteredAttackStats.value.forEach(attack => {
         if (!algorithmTypes[attack.algorithm_type]) {
           algorithmTypes[attack.algorithm_type] = 0;
         }
@@ -245,13 +358,7 @@ export default {
         datasets: [
           {
             data: data,
-            backgroundColor: [
-              '#4f46e5',
-              '#10b981',
-              '#f59e0b',
-              '#ef4444',
-              '#8b5cf6'
-            ]
+            backgroundColor: assignColorsToTypes(labels)
           }
         ]
       };
@@ -270,64 +377,78 @@ export default {
     };
     
     const radarChartData = computed(() => {
-      if (!stats.value || !stats.value.attack_stats) {
+      if (!stats.value || !stats.value.attack_stats_by_category || Object.keys(stats.value.attack_stats_by_category).length === 0) {
         return { 
           labels: [], 
-          datasets: [{ 
-            label: 'Avg. Harmful Score',
-            data: [],
-            backgroundColor: 'rgba(79, 70, 229, 0.2)',
-            borderColor: '#4f46e5',
-            pointBackgroundColor: '#4f46e5',
-            pointBorderColor: '#fff',
-            pointHoverBackgroundColor: '#fff',
-            pointHoverBorderColor: '#4f46e5'
-          }] 
+          datasets: [] 
         };
       }
       
-      // Group attacks by algorithm type and calculate average success rating
-      const algorithmTypes = {};
-      stats.value.attack_stats.forEach(attack => {
-        if (!algorithmTypes[attack.algorithm_type]) {
-          algorithmTypes[attack.algorithm_type] = {
-            total: 0,
-            count: 0,
-            avg: 0
-          };
-        }
+      // 获取所有算法类型作为标签
+      const algorithmTypes = new Set();
+      Object.values(stats.value.attack_stats_by_category).forEach(categoryStats => {
+        categoryStats.forEach(attack => {
+          if (attack.algorithm_type) {
+            algorithmTypes.add(attack.algorithm_type);
+          }
+        });
+      });
+      
+      const labels = Array.from(algorithmTypes);
+      
+      // 为每个类别创建一个数据集
+      const datasets = [];
+      const categoryColors = assignColorsByCategory(
+        Object.keys(stats.value.attack_stats_by_category)
+      );
+      
+      // 为每个类别创建数据集
+      Object.entries(stats.value.attack_stats_by_category).forEach(([category, categoryStats]) => {
+        // 计算该类别下每种算法类型的平均harmful score
+        const algorithmScores = {};
+        const algorithmCounts = {};
         
-        if (attack.avg_harmful_score) {
-          algorithmTypes[attack.algorithm_type].total += attack.avg_harmful_score;
-          algorithmTypes[attack.algorithm_type].count += 1;
-        }
+        // 初始化
+        labels.forEach(type => {
+          algorithmScores[type] = 0;
+          algorithmCounts[type] = 0;
+        });
+        
+        // 累计分数和计数
+        categoryStats.forEach(attack => {
+          if (attack.algorithm_type && attack.avg_harmful_score) {
+            algorithmScores[attack.algorithm_type] += attack.avg_harmful_score;
+            algorithmCounts[attack.algorithm_type] += 1;
+          }
+        });
+        
+        // 计算平均值
+        const avgScores = labels.map(type => {
+          if (algorithmCounts[type] > 0) {
+            return algorithmScores[type] / algorithmCounts[type];
+          }
+          return 0;
+        });
+        
+        // 生成一个随机的透明色
+        const color = categoryColors[category];
+        const backgroundColor = `rgba(${parseInt(color.slice(1, 3), 16)}, ${parseInt(color.slice(3, 5), 16)}, ${parseInt(color.slice(5, 7), 16)}, 0.2)`;
+        
+        datasets.push({
+          label: category,
+          data: avgScores,
+          backgroundColor: backgroundColor,
+          borderColor: color,
+          pointBackgroundColor: color,
+          pointBorderColor: '#fff',
+          pointHoverBackgroundColor: '#fff',
+          pointHoverBorderColor: color
+        });
       });
-      
-      // Calculate averages
-      Object.keys(algorithmTypes).forEach(type => {
-        const typeStats = algorithmTypes[type];
-        if (typeStats.count > 0) {
-          typeStats.avg = typeStats.total / typeStats.count;
-        }
-      });
-      
-      const labels = Object.keys(algorithmTypes);
-      const data = labels.map(label => algorithmTypes[label].avg);
       
       return {
         labels: labels,
-        datasets: [
-          {
-            label: 'Avg. Harmful Score',
-            data: data,
-            backgroundColor: 'rgba(79, 70, 229, 0.2)',
-            borderColor: '#4f46e5',
-            pointBackgroundColor: '#4f46e5',
-            pointBorderColor: '#fff',
-            pointHoverBackgroundColor: '#fff',
-            pointHoverBorderColor: '#4f46e5'
-          }
-        ]
+        datasets: datasets
       };
     });
     
@@ -345,9 +466,94 @@ export default {
         legend: {
           position: 'bottom',
           align: 'center'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.dataset.label || '';
+              const value = context.raw.toFixed(1);
+              return `${label}: ${value}`;
+            }
+          }
         }
       }
     };
+    
+    // 添加类别比较图表数据
+    const categoryComparisonData = computed(() => {
+      if (!stats.value || !stats.value.attack_stats || !stats.value.attack_stats_by_category) {
+        return { labels: [], datasets: [] };
+      }
+      
+      // 获取所有攻击名称作为标签
+      const attackNames = stats.value.attack_stats.map(attack => attack.name);
+      
+      // 为每个类别创建一个数据集
+      const datasets = [];
+      const categoryColors = assignColorsByCategory(
+        Object.keys(stats.value.attack_stats_by_category)
+      );
+      
+      // 为每个类别创建数据集
+      Object.entries(stats.value.attack_stats_by_category).forEach(([category, categoryStats]) => {
+        // 获取该类别下每个攻击的ASR
+        const categoryData = attackNames.map(attackName => {
+          // 查找该攻击在该类别下的数据
+          const attack = categoryStats.find(a => a.name === attackName);
+          
+          if (attack && attack.total_attempts > 0) {
+            return (attack.harmful_attempts / attack.total_attempts) * 100;
+          }
+          return 0;
+        });
+        
+        datasets.push({
+          label: category,
+          backgroundColor: categoryColors[category],
+          data: categoryData
+        });
+      });
+      
+      return {
+        labels: attackNames,
+        datasets: datasets
+      };
+    });
+    
+    const categoryComparisonOptions = {
+      scales: {
+        x: {
+          stacked: false,
+          title: {
+            display: true,
+            text: 'Attack Name'
+          }
+        },
+        y: {
+          stacked: false,
+          beginAtZero: true,
+          max: 100,
+          title: {
+            display: true,
+            text: 'Attack Success Rate (%)'
+          }
+        }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.dataset.label + ': ' + context.raw.toFixed(1) + '%';
+            }
+          }
+        }
+      }
+    };
+    
+    // 监听类别变化
+    watch(selectedCategory, () => {
+      console.log(`Category changed to: ${selectedCategory.value.name}`);
+    });
     
     // Lifecycle hooks
     onMounted(() => {
@@ -357,15 +563,22 @@ export default {
     return {
       stats,
       loading,
+      categories,
+      selectedCategory,
+      filteredAttackStats,
       formatPercentage,
       formatRating,
       calculateAttackSuccessRate,
+      getColorsList,
+      assignColorsToTypes,
       barChartData,
       barChartOptions,
       pieChartData,
       pieChartOptions,
       radarChartData,
-      radarChartOptions
+      radarChartOptions,
+      categoryComparisonData,
+      categoryComparisonOptions
     };
   }
 }
@@ -459,6 +672,24 @@ export default {
   text-align: center;
 }
 
+.category-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .category-selector {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .category-selector h2 {
+    margin-bottom: 0;
+  }
+}
+
 .mt-4 {
   margin-top: 1.5rem;
 }
@@ -480,6 +711,12 @@ export default {
 .radar-chart-container {
   height: 500px;
   width: 85%;
+}
+
+.stacked-bar-chart-container {
+  height: 550px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .chart-title {

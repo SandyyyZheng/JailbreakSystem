@@ -183,7 +183,7 @@ export default createStore({
         
         return response.data
       } catch (error) {
-        commit('SET_ERROR', error.message || '批量删除攻击失败')
+        commit('SET_ERROR', error.message || 'Failed to batch delete attacks')
         console.error('Error batch deleting attacks:', error)
         throw error
       } finally {
@@ -301,7 +301,7 @@ export default createStore({
         
         return response.data
       } catch (error) {
-        commit('SET_ERROR', error.message || '批量删除提示词失败')
+        commit('SET_ERROR', error.message || 'Failed to batch delete prompts')
         console.error('Error batch deleting prompts:', error)
         throw error
       } finally {
@@ -310,7 +310,7 @@ export default createStore({
     },
     
     // Results
-    async fetchResults({ commit }, params) {
+    async fetchResults({ commit }, params = null, categoryParam = null) {
       commit('SET_LOADING', true)
       try {
         let url = `${API_URL}/results/`
@@ -322,12 +322,16 @@ export default createStore({
         
         if (typeof params === 'object' && params !== null) {
           // 如果是对象形式 { attackId, category }
-          attackId = params.attackId
+          attackId = params.attackId || params.attack_id
           category = params.category
         } else {
-          // 向后兼容，如果是直接传入attackId
+          // 如果是直接传入攻击ID和分类
           attackId = params
+          category = categoryParam
         }
+        
+        // 添加日志调试
+        console.log(`Fetching results with attackId: ${attackId}, category: ${category}`);
         
         if (attackId) {
           queryParams.push(`attack_id=${attackId}`)
@@ -341,7 +345,10 @@ export default createStore({
           url += '?' + queryParams.join('&')
         }
         
+        console.log(`API Request URL: ${url}`);
+        
         const response = await axios.get(url)
+        console.log(`API Response:`, response.data);
         commit('SET_RESULTS', response.data)
       } catch (error) {
         commit('SET_ERROR', error.message || 'Failed to fetch results')
@@ -412,7 +419,7 @@ export default createStore({
         
         return response.data
       } catch (error) {
-        commit('SET_ERROR', error.message || '批量删除结果失败')
+        commit('SET_ERROR', error.message || 'Failed to batch delete results')
         console.error('Error batch deleting results:', error)
         throw error
       } finally {

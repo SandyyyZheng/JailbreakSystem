@@ -20,11 +20,11 @@
         </div>
       </div>
       
-      <!-- 添加批量操作工具栏 -->
+      <!-- Add bulk operation toolbar -->
       <div class="bulk-actions" v-if="selectedPrompts.length > 0">
-        <span class="selected-count">已选择 {{ selectedPrompts.length }} 项</span>
+        <span class="selected-count">{{ selectedPrompts.length }} item(s) selected</span>
         <div class="bulk-actions-buttons">
-          <Button label="批量删除" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelectedPrompts" />
+          <Button label="Batch Delete" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelectedPrompts" />
         </div>
       </div>
       
@@ -123,11 +123,11 @@
     <Dialog v-model:visible="deletePromptsDialog" :style="{width: '450px'}" header="Confirm" :modal="true">
       <div class="confirmation-content">
         <i class="pi pi-exclamation-triangle p-mr-3" style="font-size: 2rem" />
-        <span>确定要删除选中的 {{ selectedPrompts.length }} 条提示词吗？</span>
+        <span>Are you sure you want to delete the selected {{ selectedPrompts.length }} prompts?</span>
       </div>
       <template #footer>
-        <Button label="取消" icon="pi pi-times" class="p-button-text" @click="deletePromptsDialog = false" />
-        <Button label="确定删除" icon="pi pi-check" class="p-button-danger p-button-text" @click="deleteSelectedPrompts" />
+        <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="deletePromptsDialog = false" />
+        <Button label="Confirm Delete" icon="pi pi-check" class="p-button-danger p-button-text" @click="deleteSelectedPrompts" />
       </template>
     </Dialog>
     
@@ -215,7 +215,7 @@ export default {
       return selectedFileName.value && selectedColumn.value && datasetName.value;
     });
     
-    // 添加计算属性来处理筛选
+    // Add computed property to handle filtering
     const filteredPrompts = computed(() => {
       if (!selectedCategory.value || selectedCategory.value.name === 'All') {
         return prompts.value;
@@ -250,7 +250,7 @@ export default {
       }
     };
     
-    // 添加全选/取消全选方法
+    // Add select/deselect all method
     const toggleSelectAll = () => {
       if (selectAll.value) {
         selectedPrompts.value = [...filteredPrompts.value];
@@ -259,14 +259,14 @@ export default {
       }
     };
     
-    // 监听选中项变化，更新全选状态
+    // Watch for selected items changes, update select all state
     const updateSelectAllState = () => {
       selectAll.value = 
         filteredPrompts.value.length > 0 && 
         selectedPrompts.value.length === filteredPrompts.value.length;
     };
     
-    // 监听selectedPrompts变化
+    // Watch for selectedPrompts changes
     const watchSelectedPrompts = () => {
       updateSelectAllState();
     };
@@ -379,8 +379,8 @@ export default {
       } else {
         toast.add({
           severity: 'warn',
-          summary: '警告',
-          detail: '请先选择要删除的提示词',
+          summary: 'Warning',
+          detail: 'Please select prompts to delete first',
           life: 3000
         });
       }
@@ -395,8 +395,8 @@ export default {
         
         toast.add({
           severity: 'success',
-          summary: '删除成功',
-          detail: `已成功删除 ${result.results.deleted} 条提示词${result.results.failed > 0 ? `，${result.results.failed} 条删除失败` : ''}`,
+          summary: 'Deletion Successful',
+          detail: `Successfully deleted ${result.results.deleted} prompts${result.results.failed > 0 ? `, ${result.results.failed} deletion failed` : ''}`,
           life: 3000
         });
         
@@ -408,8 +408,8 @@ export default {
         console.error('Error deleting selected prompts:', error);
         toast.add({
           severity: 'error',
-          summary: '删除失败',
-          detail: '删除提示词时发生错误',
+          summary: 'Deletion Failed',
+          detail: 'An error occurred while deleting prompts',
           life: 3000
         });
       } finally {
@@ -418,8 +418,8 @@ export default {
     };
     
     const filterByCategory = () => {
-      // 不需要向后端发送请求，使用计算属性在前端进行筛选
-      // 保留此函数以便在需要时添加额外逻辑
+      // No need to send request to backend, use computed property to filter on frontend
+      // Keep this function for additional logic if needed
       selectedPrompts.value = [];
       selectAll.value = false;
     };
@@ -511,8 +511,8 @@ export default {
 
         toast.add({
           severity: 'success',
-          summary: '导入成功',
-          detail: `成功导入 ${prompts.length} 条数据到数据集 "${datasetName.value}"`,
+          summary: 'Import Successful',
+          detail: `Successfully imported ${prompts.length} data to dataset "${datasetName.value}"`,
           life: 3000
         });
 
@@ -522,8 +522,8 @@ export default {
         console.error('Error importing prompts:', error);
         toast.add({
           severity: 'error',
-          summary: '导入失败',
-          detail: '导入数据时发生错误',
+          summary: 'Import Failed',
+          detail: 'An error occurred while importing data',
           life: 3000
         });
       }
@@ -534,7 +534,7 @@ export default {
       fetchPrompts();
     });
     
-    // 监听selectedPrompts变化
+    // Watch for selectedPrompts changes
     watch(selectedPrompts, () => {
       watchSelectedPrompts();
     });
@@ -669,7 +669,7 @@ export default {
   margin-left: -1px;
 }
 
-/* 批量操作工具栏样式 */
+/* Bulk operation toolbar styles */
 .bulk-actions {
   display: flex;
   justify-content: space-between;

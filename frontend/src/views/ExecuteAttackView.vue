@@ -41,7 +41,7 @@
                 </div>
 
                 <div v-if="promptSource && promptSource.value === 'category'" class="form-group">
-                  <label for="category">Select Category</label>
+                  <label for="category">Select Dataset</label>
                   <Dropdown id="category" v-model="selectedCategory" :options="categories" optionLabel="name"
                             placeholder="Select a category" class="w-full" />
                   <small class="text-secondary">All prompts in this category will be tested</small>
@@ -279,7 +279,7 @@ export default {
     // Prompt source options
     const promptSources = [
       { name: 'Existing Prompt', value: 'existing' },
-      { name: 'Category', value: 'category' },
+      { name: 'Dataset', value: 'category' },
       { name: 'Custom Prompt', value: 'custom' }
     ]
     const promptSource = ref(promptSources[0])

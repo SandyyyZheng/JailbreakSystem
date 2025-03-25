@@ -23,6 +23,8 @@ import TabPanel from 'primevue/tabpanel'
 import Chart from 'primevue/chart'
 import Slider from 'primevue/slider'
 import Rating from 'primevue/rating'
+import InputSwitch from 'primevue/inputswitch'
+import Checkbox from 'primevue/checkbox'
 
 // PrimeVue styles
 import 'primevue/resources/themes/saga-blue/theme.css'
@@ -59,5 +61,7 @@ app.component('TabPanel', TabPanel)
 app.component('Chart', Chart)
 app.component('Slider', Slider)
 app.component('Rating', Rating)
+app.component('InputSwitch', InputSwitch)
+app.component('Checkbox', Checkbox)
 
 app.mount('#app') 

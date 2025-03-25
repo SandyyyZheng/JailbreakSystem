@@ -18,6 +18,19 @@ The Jailbreak System consists of three main components:
 - Categorize and organize prompts
 - Visualize attack results and statistics
 - Implement custom attack algorithms
+- Utilize cryptographic attacks from CipherChat
+
+## Supported Attack Algorithms
+
+The system includes several attack algorithms:
+
+1. **Template-based**: Uses predefined templates to construct jailbreak prompts
+2. **Character Stuffing**: Adds repeated characters to confuse the model
+3. **Multi-language**: Uses foreign language instructions to bypass restrictions
+4. **Token Limit**: Adds filler text to push context limits
+5. **JSON Injection**: Uses JSON formatting to confuse the model
+6. **ASCII Art**: Encodes sensitive words using ASCII art
+7. **Cipher**: Uses various cryptographic encoding methods to bypass content moderation
 
 ## Architecture
 

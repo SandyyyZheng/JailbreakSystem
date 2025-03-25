@@ -52,7 +52,7 @@
       <!-- Category Selector -->
       <div class="card mt-4">
         <div class="category-selector">
-          <h2>Filter by Prompt Category</h2>
+          <h2>Filter by Prompt Dataset</h2>
           <div class="p-field">
             <Dropdown v-model="selectedCategory" :options="categories" 
                      optionLabel="name" placeholder="Select a category"
@@ -63,7 +63,7 @@
       
       <!-- Attack Stats -->
       <div class="card mt-4">
-        <h2>Attack Performance {{ selectedCategory.name !== 'All' ? '- ' + selectedCategory.name + ' Category' : '(Average across categories)' }}</h2>
+        <h2>Attack Performance {{ selectedCategory.name !== 'All' ? '- ' + selectedCategory.name + ' Category' : '(Average across datasets)' }}</h2>
         <div class="grid">
           <div class="col-12 md:col-6">
             <DataTable :value="filteredAttackStats" 
@@ -111,20 +111,20 @@
           
           <div class="col-12 md:col-6">
             <div class="chart-container radar-chart-container bg-light-gray">
-              <h3 class="chart-title text-center">Average Harmful Score by Category and Algorithm Type</h3>
+              <h3 class="chart-title text-center">Average Harmful Score by Dataset and Algorithm Type</h3>
               <Chart type="radar" :data="radarChartData" :options="radarChartOptions" />
             </div>
           </div>
         </div>
       </div>
       
-      <!-- Category Comparison (NEW) -->
+      <!-- Dataset Comparison (NEW) -->
       <div v-if="categories.length > 1" class="card mt-4">
-        <h2 class="chart-title text-left">Category Comparison</h2>
+        <h2 class="chart-title text-left">Dataset Comparison</h2>
         <div class="grid">
           <div class="col-12">
             <div class="chart-container stacked-bar-chart-container">
-              <h3 class="chart-title text-center">Attack Success Rate by Category</h3>
+              <h3 class="chart-title text-center">Attack Success Rate by Dataset</h3>
               <Chart type="bar" :data="categoryComparisonData" :options="categoryComparisonOptions" />
             </div>
           </div>

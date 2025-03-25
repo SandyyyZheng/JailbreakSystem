@@ -18,7 +18,7 @@
           </div>
           <div class="filter-dropdown">
             <Dropdown v-model="selectedCategory" :options="categories" optionLabel="name" 
-                      placeholder="Filter by category" @change="filterByCategory" class="fixed-width-dropdown" />
+                      placeholder="Filter by dataset" @change="filterByCategory" class="fixed-width-dropdown" />
           </div>
         </div>
       </div>
@@ -46,13 +46,7 @@
           <div class="p-text-center">Loading results...</div>
         </template>
         
-        <Column selectionMode="multiple" headerStyle="width: 3rem">
-          <template #header>
-            <div class="select-all-container">
-              <Checkbox v-model="selectAll" binary @change="toggleSelectAll" />
-            </div>
-          </template>
-        </Column>
+        <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
         <Column field="id" header="ID" sortable style="width: 5rem"></Column>
         <Column field="attack_name" header="Attack" sortable style="width: 10rem"></Column>
         <Column field="original_prompt" header="Original Prompt" sortable>
@@ -280,7 +274,7 @@ export default {
           .filter(Boolean))];
         
         categories.value = [
-          { name: 'All Categories', value: null },
+          { name: 'All Datasets', value: null },
           ...uniqueCategories.map(category => ({ name: category, value: category }))
         ];
         

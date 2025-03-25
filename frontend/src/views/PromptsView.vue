@@ -16,7 +16,7 @@
         </div>
         <div class="filter-dropdown">
           <Dropdown v-model="selectedCategory" :options="categories" optionLabel="name" 
-                    placeholder="Filter by category" @change="filterByCategory" />
+                    placeholder="Filter by dataset" @change="filterByCategory" />
         </div>
       </div>
       
@@ -43,13 +43,7 @@
           <div class="p-text-center">Loading prompts...</div>
         </template>
         
-        <Column selectionMode="multiple" headerStyle="width: 3rem">
-          <template #header>
-            <div class="select-all-container">
-              <Checkbox v-model="selectAll" binary @change="toggleSelectAll" />
-            </div>
-          </template>
-        </Column>
+        <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
         <Column field="id" header="ID" sortable style="width: 5rem"></Column>
         <Column field="content" header="Prompt Content" sortable>
           <template #body="slotProps">

@@ -29,6 +29,10 @@ def create_attack():
     algorithm_type = data.get('algorithm_type')
     parameters = data.get('parameters')
     
+    # 调试输出
+    print(f"DEBUG: Creating attack with name: {name}, algorithm_type: {algorithm_type}")
+    print(f"DEBUG: parameters: {parameters}")
+    
     attack_id = Attack.create(name, description, algorithm_type, parameters)
     return jsonify({"id": attack_id, "message": "Attack created successfully"}), 201
 
@@ -111,11 +115,16 @@ def execute_attack():
     if attack is None:
         return jsonify({"error": "Attack not found"}), 404
     
-    # TODO: This is where you'll implement your black-box attack algorithm
-    # The implementation will depend on the algorithm_type
+    # 调试输出
+    print(f"DEBUG: attack_id: {attack_id}")
+    print(f"DEBUG: attack found: {attack}")
     
     algorithm_type = attack['algorithm_type']
     parameters = json.loads(attack['parameters']) if attack['parameters'] else {}
+    
+    # 调试输出
+    print(f"DEBUG: algorithm_type: {algorithm_type}")
+    print(f"DEBUG: parameters: {parameters}")
 
     # Call the function in jailbreak_algorithms.py
     jailbreak_prompt = apply_jailbreak(prompt, algorithm_type, **parameters)

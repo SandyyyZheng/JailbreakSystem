@@ -43,13 +43,7 @@
                     :filters="filters" filterDisplay="menu"
                     v-model:selection="selectedAttacks"
                     :globalFilterFields="['name']">
-            <Column selectionMode="multiple" headerStyle="width: 3rem">
-              <template #header>
-                <div class="select-all-container">
-                  <Checkbox v-model="selectAll" binary @change="toggleSelectAll" />
-                </div>
-              </template>
-            </Column>
+            <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
             <Column field="name" header="Name" sortable></Column>
             <Column field="algorithm_type" header="Algorithm Type" sortable></Column>
             <Column field="description" header="Description">
@@ -153,6 +147,30 @@
         </div>
       </div>
       
+      <!-- CipherChat密码学攻击参数设置 -->
+      <div class="form-group" v-if="attack.algorithm_type === 'cipher'">
+        <label for="cipher_type">Cipher Type</label>
+        <Dropdown id="cipher_type" v-model="attack.parameters.cipher_type" :options="cipherTypeOptions" 
+                 optionLabel="name" optionValue="value" placeholder="Select a cipher type" />
+        
+        <div class="mt-3">
+          <label for="use_demonstrations" class="mr-2">Use Demonstrations</label>
+          <InputSwitch id="use_demonstrations" v-model="attack.parameters.use_demonstrations" />
+          <small class="block mt-1">
+            When enabled, the system will include example demonstrations with the encoded content.
+          </small>
+        </div>
+        
+        <div class="mt-3">
+          <label for="system_prompt">Custom System Prompt (Optional)</label>
+          <Textarea id="system_prompt" v-model="attack.parameters.system_prompt" rows="3" 
+                   placeholder="Leave empty to use default system prompt" />
+          <small class="block mt-1">
+            If provided, this will override the default system prompt for the selected cipher.
+          </small>
+        </div>
+      </div>
+      
       <template #footer>
         <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="hideDialog" />
         <Button label="Save" icon="pi pi-check" class="p-button-text" @click="saveAttack" />
@@ -234,6 +252,7 @@ export default {
       { name: 'Token Limit', value: 'token_limit' },
       { name: 'JSON Injection', value: 'json_injection' },
       { name: 'ASCII Art', value: 'ascii_art' },
+      { name: 'Cipher', value: 'cipher' },
       { name: 'Custom', value: 'custom' }
     ];
     
@@ -254,6 +273,14 @@ export default {
     const asciiArtStyleOptions = [
       { name: '5x5 Grid', value: '5x5' },
       { name: 'Block Style', value: 'block' }
+    ];
+    
+    // Cipher type options
+    const cipherTypeOptions = [
+      { name: 'Caesar Cipher', value: 'caesar' },
+      { name: 'Atbash Cipher', value: 'atbash' },
+      { name: 'Morse Code', value: 'morse' },
+      { name: 'ASCII Code', value: 'ascii' }
     ];
     
     // Language options
@@ -579,6 +606,12 @@ export default {
           style: attack.value.parameters.style || 'block',
           detect_sensitive: attack.value.parameters.detect_sensitive !== undefined ? attack.value.parameters.detect_sensitive : true
         };
+      } else if (newType === 'cipher') {
+        attack.value.parameters = {
+          cipher_type: attack.value.parameters.cipher_type || 'caesar',
+          use_demonstrations: attack.value.parameters.use_demonstrations !== undefined ? attack.value.parameters.use_demonstrations : true,
+          system_prompt: attack.value.parameters.system_prompt || ''
+        };
       } else {
         // For other algorithm types, just ensure parameters is an empty object
         attack.value.parameters = {};
@@ -614,6 +647,7 @@ export default {
       algorithmTypeOptions,
       templateTypes,
       asciiArtStyleOptions,
+      cipherTypeOptions,
       languageOptions,
       selectedAlgorithmType,
       rows,

@@ -43,7 +43,7 @@
                 <div v-if="promptSource && promptSource.value === 'category'" class="form-group">
                   <label for="category">Select Dataset</label>
                   <Dropdown id="category" v-model="selectedCategory" :options="categories" optionLabel="name"
-                            placeholder="Select a category" class="w-full" />
+                            placeholder="Select a dataset" class="w-full" />
                   <small class="text-secondary">All prompts in this category will be tested</small>
                 </div>
                 

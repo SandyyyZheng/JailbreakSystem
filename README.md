@@ -16,9 +16,8 @@ The Jailbreak System consists of three main components:
 - Test attacks against various language models
 - Analyze attack success rates and patterns
 - Categorize and organize prompts
-- Visualize attack results and statistics
+- Visualize attack results
 - Implement custom attack algorithms
-- Utilize cryptographic attacks from CipherChat
 
 ## Supported Attack Algorithms
 

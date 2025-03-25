@@ -50,7 +50,7 @@
             <div class="prompt-content">{{ slotProps.data.content }}</div>
           </template>
         </Column>
-        <Column field="category" header="Category" sortable style="width: 12rem"></Column>
+        <Column field="category" header="Dataset" sortable style="width: 12rem"></Column>
         <Column field="created_at" header="Created" sortable style="width: 12rem">
           <template #body="slotProps">
             {{ formatDate(slotProps.data.created_at) }}
@@ -78,18 +78,18 @@
       </div>
       
       <div class="p-field">
-        <label for="category">Category</label>
+        <label for="category">Dataset</label>
         <div class="p-inputgroup">
           <Dropdown id="category" v-model="prompt.category" :options="categories" optionLabel="name" 
-                    placeholder="Select a category" class="w-full" />
+                    placeholder="Select a dataset" class="w-full" />
           <Button icon="pi pi-plus" @click="showCategoryInput = true" v-if="!showCategoryInput" />
         </div>
       </div>
       
       <div class="p-field" v-if="showCategoryInput">
-        <label for="newCategory">New Category</label>
+        <label for="newCategory">New Dataset</label>
         <div class="p-inputgroup">
-          <InputText id="newCategory" v-model="newCategory" placeholder="Enter new category" />
+          <InputText id="newCategory" v-model="newCategory" placeholder="Enter new dataset" />
           <Button icon="pi pi-check" @click="addCategory" />
           <Button icon="pi pi-times" class="p-button-danger" @click="showCategoryInput = false" />
         </div>

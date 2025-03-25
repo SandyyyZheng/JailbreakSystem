@@ -55,7 +55,7 @@
           <h2>Filter by Prompt Dataset</h2>
           <div class="p-field">
             <Dropdown v-model="selectedCategory" :options="categories" 
-                     optionLabel="name" placeholder="Select a category"
+                     optionLabel="name" placeholder="Select a dataset"
                      class="w-full md:w-20rem" />
           </div>
         </div>
@@ -552,7 +552,7 @@ export default {
     
     // 监听类别变化
     watch(selectedCategory, () => {
-      console.log(`Category changed to: ${selectedCategory.value.name}`);
+      console.log(`Dataset changed to: ${selectedCategory.value.name}`);
     });
     
     // Lifecycle hooks

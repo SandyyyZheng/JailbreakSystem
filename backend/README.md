@@ -1,11 +1,12 @@
-# Jailbreak System Backend
+# 🔽Backend
 
-This is the backend for the Jailbreak System, a platform for testing and evaluating jailbreak attacks against large language models.
+This is the backend documentation for the Jailbreak System.
 
 ## Setup
 
 1. Create a virtual environment:
 ```bash
+cd backend
 python -m venv venv
 source venv/bin/activate  # On Windows: venv/Scripts/activate
 ```
@@ -20,6 +21,15 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 Then edit the `.env` file with your API keys and configuration.
+
+## Running the Server
+
+Development mode:
+```bash
+python app.py
+```
+
+The server will start on http://localhost:5001
 
 ## Project Structure
 
@@ -37,15 +47,6 @@ backend/
 ├── requirements.txt      # Python dependencies
 └── .env.example          # Environment variables template
 ```
-
-## Running the Server
-
-Development mode:
-```bash
-python app.py
-```
-
-The server will start on http://localhost:5001
 
 ## API Endpoints
 

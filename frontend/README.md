@@ -1,11 +1,12 @@
-# Jailbreak System Frontend
+# 🔼Frontend
 
-This is the frontend for the Jailbreak System, providing a user interface for testing and evaluating jailbreak attacks against large language models.
+This is the frontend documentation for the Jailbreak System.
 
 ## Setup
 
 1. Install dependencies:
 ```bash
+cd frontend
 npm install
 ```
 

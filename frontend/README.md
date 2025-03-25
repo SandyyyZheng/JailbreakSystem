@@ -1,35 +1,22 @@
-# 🔼Frontend
+# 🔼 Frontend
 
 This is the frontend documentation for the Jailbreak System.
 
 ## Setup
 
-1. Install dependencies:
+Install dependencies:
+
 ```bash
 cd frontend
 npm install
 ```
 
-2. Set up environment variables:
-```bash
-cp .env.example .env
-```
-Then edit the `.env` file with your API configuration.
-
-## Development
+## Run
 
 Run the development server:
 
 ```bash
 npm run serve
-```
-
-## Build
-
-To build for production:
-
-```bash
-npm run build
 ```
 
 ## Features
@@ -47,11 +34,8 @@ frontend/
 ├── src/
 │   ├── views/          # Page components
 │   ├── router/         # Vue Router configuration
-│   │   └── index.js
 │   ├── store/          # Vuex state management
-│   │   └── index.js
 │   ├── assets/         # Static assets and styles
-│   │   └── main.css
 │   ├── App.vue         # Root component
 │   └── main.js         # Application entry point
 ├── public/             # Public static assets

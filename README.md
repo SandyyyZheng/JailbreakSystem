@@ -10,6 +10,10 @@ The Jailbreak System consists of three main components:
 2. **Backend**: A Flask API server handling the core logic and model interactions
 3. **Database**: Stores attack patterns, prompts, and results
 
+## 🦾Updates
+
+03/26/2025: New functions on real LLM APIs is on the way! Switch to feature/llm-api to follow up. 
+
 ## 🙌 Demo
 
 ### Homepage
@@ -54,7 +58,7 @@ This project is still IN PROGRESS:
 - Visualize attack results
 - Implement custom attack algorithms
 
-## ✅Supported Attack Algorithms
+## ✅ Supported Attack Algorithms
 
 The system includes several attack algorithms:
 
@@ -66,7 +70,7 @@ The system includes several attack algorithms:
 6. **ASCII Art**: Encodes sensitive words using ASCII art, built upon [ACL24-ArtPrompt](https://github.com/uw-nsl/ArtPrompt)
 7. **Cipher**: Uses various cryptographic encoding methods to bypass content moderation, built upon [ICLR24-CipherChat](https://github.com/RobustNLP/CipherChat)
 
-## 🛖 Architecture
+## 🛖 Structure
 
 ```
 JailbreakSystem/

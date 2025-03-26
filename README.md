@@ -10,6 +10,14 @@ The Jailbreak System consists of three main components:
 2. **Backend**: A Flask API server handling the core logic and model interactions
 3. **Database**: Stores attack patterns, prompts, and results
 
+## 🌓 Branch Log
+
+- 03/26/2025: Enabled real LLM APIs. Free trial expired so only received this: 
+
+```
+Error: 429 Client Error: Too Many Requests for url: https://api.openai.com/v1/chat/completions
+```
+
 ## 🙌 Demo
 
 ### Homepage
@@ -54,7 +62,7 @@ This project is still IN PROGRESS:
 - Visualize attack results
 - Implement custom attack algorithms
 
-## ✅Supported Attack Algorithms
+## ✅ Supported Attack Algorithms
 
 The system includes several attack algorithms:
 
@@ -66,7 +74,7 @@ The system includes several attack algorithms:
 6. **ASCII Art**: Encodes sensitive words using ASCII art, built upon [ACL24-ArtPrompt](https://github.com/uw-nsl/ArtPrompt)
 7. **Cipher**: Uses various cryptographic encoding methods to bypass content moderation, built upon [ICLR24-CipherChat](https://github.com/RobustNLP/CipherChat)
 
-## 🛖 Architecture
+## 🛖 Structure
 
 ```
 JailbreakSystem/
@@ -90,10 +98,10 @@ cd JailbreakSystem
 
 ## 📖 License
 
-This project is licensed under the MIT License.
+This project is MIT-licensed.
 
 ## 👻 Acknowledgments
 
 - OpenAI/Anthropic for providing the API
-- Undergraduate Graduation Design for HFUT
-- Relies **heavily** on Claude-3.5-sonnet and Claude-3.7-sonnet to construct framework and fix bugs. Kudos to AI🤖!
+- 2025 Graduation Design for HFUT
+- Relies **heavily** on [Cursor](https://www.cursor.com/) (mainly claude-3.5-sonnet & claude-3.7-sonnet) to construct framework and fix bugs. Kudos to AI🤖!

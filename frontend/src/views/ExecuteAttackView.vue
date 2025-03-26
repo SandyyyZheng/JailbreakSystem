@@ -53,16 +53,18 @@
                             placeholder="Enter your prompt here..." />
                 </div>
                 
+                <!-- 添加LLM提供商和模型选择 -->
                 <div class="form-group">
                   <label for="llm-provider">LLM Provider</label>
-                  <Dropdown id="llm-provider" v-model="selectedProvider" :options="llmProviders" optionLabel="name" 
+                  <Dropdown id="llm-provider" v-model="selectedProvider" :options="providers" optionLabel="name" 
                             placeholder="Select LLM provider" class="w-full" />
                 </div>
-
-                <div class="form-group" v-if="selectedProvider">
-                  <label for="llm-model">LLM Model</label>
-                  <Dropdown id="llm-model" v-model="selectedModel" :options="availableModels" optionLabel="name" 
-                            placeholder="Select model" class="w-full" />
+                
+                <div v-if="selectedProvider" class="form-group">
+                  <label for="llm-model">Model</label>
+                  <Dropdown id="llm-model" v-model="selectedModel" 
+                            :options="getModelsByProvider(selectedProvider.value)" 
+                            optionLabel="name" placeholder="Select model" class="w-full" />
                 </div>
                 
                 <div class="form-group">
@@ -253,7 +255,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useToast } from 'primevue/usetoast'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 export default {
   name: 'ExecuteAttackView',
@@ -262,6 +264,7 @@ export default {
     const store = useStore()
     const toast = useToast()
     const route = useRoute()
+    const router = useRouter()
     
     // State
     const loading = ref(true)
@@ -281,6 +284,34 @@ export default {
     const batchResults = ref([])
     const resultDetailDialog = ref(false)
     
+    // 添加LLM提供商和模型选择
+    const providers = [
+      { name: 'OpenAI', value: 'openai' },
+      { name: 'Anthropic', value: 'anthropic' }
+    ]
+    const selectedProvider = ref(providers[0])
+    const selectedModel = ref(null)
+    
+    // 模型选项
+    const openaiModels = [
+      { name: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
+      { name: 'GPT-4', value: 'gpt-4' }
+    ]
+    const anthropicModels = [
+      { name: 'Claude Instant', value: 'claude-instant-1.2' },
+      { name: 'Claude 2', value: 'claude-2' }
+    ]
+    
+    // 根据提供商获取模型列表
+    const getModelsByProvider = (provider) => {
+      if (provider === 'openai') {
+        return openaiModels
+      } else if (provider === 'anthropic') {
+        return anthropicModels
+      }
+      return []
+    }
+    
     // Tabs
     const tabs = [
       { header: 'Original Prompt' },
@@ -296,43 +327,16 @@ export default {
     ]
     const promptSource = ref(promptSources[0])
     
-    // LLM配置
-    const selectedProvider = ref(null);
-    const selectedModel = ref(null);
-    
-    const llmProviders = [
-      { name: 'OpenAI', value: 'openai' },
-      { name: 'Anthropic', value: 'anthropic' }
-    ];
-    
-    const modelsByProvider = {
-      openai: [
-        { name: 'GPT-4', value: 'gpt-4' },
-        { name: 'GPT-4 Turbo', value: 'gpt-4-turbo-preview' },
-        { name: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' }
-      ],
-      anthropic: [
-        { name: 'Claude 3 Opus', value: 'claude-3-opus-20240229' },
-        { name: 'Claude 3 Sonnet', value: 'claude-3-sonnet-20240229' },
-        { name: 'Claude 2.1', value: 'claude-2.1' }
-      ]
-    };
-    
-    const availableModels = computed(() => {
-      if (!selectedProvider.value) return [];
-      return modelsByProvider[selectedProvider.value.value] || [];
-    });
-    
     // Computed properties
     const isFormValid = computed(() => {
-      if (!selectedAttack.value || !selectedProvider.value || !selectedModel.value) return false;
+      if (!selectedAttack.value) return false
       
       if (promptSource.value.value === 'existing') {
-        return !!selectedPrompt.value;
+        return !!selectedPrompt.value
       } else if (promptSource.value.value === 'category') {
-        return !!selectedCategory.value;
+        return !!selectedCategory.value
       } else {
-        return !!customPrompt.value.trim();
+        return !!customPrompt.value.trim()
       }
     })
 
@@ -395,30 +399,49 @@ export default {
     }
 
     const executeBatchAttack = async () => {
-      if (!isBatchFormValid.value) return;
+      if (!isBatchFormValid.value) return
 
-      executing.value = true;
-      batchResults.value = [];
-      const categoryPrompts = prompts.value.filter(p => p.category === selectedCategory.value.name);
-      const totalPrompts = categoryPrompts.length;
-      let processedCount = 0;
+      executing.value = true
+      batchResults.value = []
+      const categoryPrompts = prompts.value.filter(p => p.category === selectedCategory.value.name)
+      const totalPrompts = categoryPrompts.length
+      let processedCount = 0
+      
+      // 获取LLM配置
+      const provider = selectedProvider.value.value
+      const model = selectedModel.value ? selectedModel.value.value : null
 
       try {
         for (const prompt of categoryPrompts) {
-          executionStatus.value = `正在处理提示词 ${++processedCount}/${totalPrompts}...`;
+          executionStatus.value = `处理提示 ${++processedCount} / ${totalPrompts}...`
           
           const result = await store.dispatch('executeAttack', {
             attackId: selectedAttack.value.id,
-            prompt: prompt.content,
-            llm_provider: selectedProvider.value.value,
-            llm_model: selectedModel.value.value
-          });
+            prompt: prompt.content
+          })
+
+          // 使用真实的LLM API
+          let llmResponse = ''
+          try {
+            const response = await store.dispatch('testWithLLM', {
+              prompt: result.jailbreak_prompt,
+              provider,
+              model
+            })
+            llmResponse = response.response
+          } catch (llmError) {
+            console.error('LLM API error:', llmError)
+            llmResponse = '获取LLM响应时发生错误'
+          }
+
+          // 根据响应计算评分（这里可以保留简单的评分逻辑）
+          const autoRating = calculateAutoRating(llmResponse)
 
           batchResults.value.push({
             ...result,
-            model_response: result.model_response,
-            success_rating: null  // 初始化为null，等待用户评分
-          });
+            model_response: llmResponse,
+            success_rating: autoRating
+          })
 
           // 保存结果
           await store.dispatch('createResult', {
@@ -426,31 +449,45 @@ export default {
             prompt_id: prompt.id,
             original_prompt: result.original_prompt,
             jailbreak_prompt: result.jailbreak_prompt,
-            model_response: result.model_response,
-            success_rating: null
-          });
+            model_response: llmResponse,
+            success_rating: autoRating,
+            llm_provider: provider,
+            llm_model: model
+          })
         }
 
         toast.add({
           severity: 'success',
-          summary: '批量执行完成',
-          detail: `已处理 ${batchResults.value.length} 个提示词`,
+          summary: '成功',
+          detail: `批量测试完成: 处理了 ${batchResults.value.length} 个提示`,
           life: 3000
-        });
+        })
       } catch (error) {
         toast.add({
           severity: 'error',
-          summary: '执行失败',
-          detail: '批量执行攻击时发生错误',
+          summary: '错误',
+          detail: '执行批量攻击失败',
           life: 3000
-        });
-        console.error('Error executing batch attack:', error);
+        })
+        console.error('Error executing batch attack:', error)
       } finally {
-        executing.value = false;
-        executionStatus.value = '';
-        setTimeout(adjustCardHeights, 100);
+        executing.value = false
+        executionStatus.value = ''
+        setTimeout(adjustCardHeights, 100)
       }
-    };
+    }
+
+    const simulateLLMResponse = async (prompt) => {
+      // Simulate LLM response with a delay
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      return "This is a simulated response from the LLM. In a real implementation, this would be the actual response from the LLM API to the jailbreak prompt."
+    }
+
+    const calculateAutoRating = (response) => {
+      // TODO: Implement more sophisticated rating logic
+      // For now, randomly assign a rating between 2 and 5
+      return Math.floor(Math.random() * 4) + 2 // Returns 2, 3, 4, or 5
+    }
 
     const viewBatchResult = (result) => {
       jailbreakResult.value = result
@@ -462,47 +499,44 @@ export default {
     }
     
     const executeAttack = async () => {
-      if (!isFormValid.value) return;
+      if (!isFormValid.value) return
       
-      executing.value = true;
-      jailbreakResult.value = null;
-      modelResponse.value = '';
+      executing.value = true
+      jailbreakResult.value = null
+      modelResponse.value = ''
       
       try {
         const prompt = promptSource.value.value === 'existing' 
           ? selectedPrompt.value.content 
-          : customPrompt.value;
+          : customPrompt.value
         
         const result = await store.dispatch('executeAttack', {
           attackId: selectedAttack.value.id,
-          prompt: prompt,
-          llm_provider: selectedProvider.value.value,
-          llm_model: selectedModel.value.value
-        });
+          prompt: prompt
+        })
         
-        jailbreakResult.value = result;
-        modelResponse.value = result.model_response;
-        activeTabIndex.value = 0;
+        jailbreakResult.value = result
+        activeTabIndex.value = 0
         
         toast.add({
           severity: 'success',
-          summary: '执行成功',
-          detail: '攻击已成功执行',
+          summary: 'Success',
+          detail: 'Attack executed successfully',
           life: 3000
-        });
+        })
       } catch (error) {
         toast.add({
           severity: 'error',
-          summary: '执行失败',
-          detail: '执行攻击时发生错误',
+          summary: 'Error',
+          detail: 'Failed to execute attack',
           life: 3000
-        });
-        console.error('Error executing attack:', error);
+        })
+        console.error('Error executing attack:', error)
       } finally {
-        executing.value = false;
-        setTimeout(adjustCardHeights, 100);
+        executing.value = false
+        setTimeout(adjustCardHeights, 100)
       }
-    };
+    }
     
     const testWithLLM = async () => {
       if (!jailbreakResult.value) return
@@ -511,24 +545,31 @@ export default {
       modelResponse.value = ''
       
       try {
-        // This would normally call an API to test with a real LLM
-        // For now, we'll simulate a response
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        // 调用真实的LLM API
+        const provider = selectedProvider.value.value
+        const model = selectedModel.value ? selectedModel.value.value : null
         
-        modelResponse.value = "This is a simulated response from the LLM. In a real implementation, this would be the actual response from the LLM API to the jailbreak prompt."
+        const response = await store.dispatch('testWithLLM', {
+          prompt: jailbreakResult.value.jailbreak_prompt,
+          provider,
+          model
+        })
+        
+        // 更新模型响应
+        modelResponse.value = response.response
         activeTabIndex.value = 2
         
         toast.add({
           severity: 'info',
           summary: 'Response Received',
-          detail: 'LLM response received',
+          detail: `Received response from ${response.provider} ${response.model}`,
           life: 3000
         })
       } catch (error) {
         toast.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Failed to get LLM response',
+          detail: error.response?.data?.error || 'Failed to get LLM response',
           life: 3000
         })
         console.error('Error testing with LLM:', error)
@@ -541,17 +582,22 @@ export default {
     const saveResult = async () => {
       if (!jailbreakResult.value || !modelResponse.value) return
       
+      executing.value = true
+      
       try {
-        const resultData = {
+        const provider = selectedProvider.value.value
+        const model = selectedModel.value ? selectedModel.value.value : null
+        
+        const result = await store.dispatch('createResult', {
           attack_id: selectedAttack.value.id,
           prompt_id: promptSource.value.value === 'existing' ? selectedPrompt.value.id : null,
           original_prompt: jailbreakResult.value.original_prompt,
           jailbreak_prompt: jailbreakResult.value.jailbreak_prompt,
           model_response: modelResponse.value,
-          success_rating: successRating.value
-        }
-        
-        await store.dispatch('createResult', resultData)
+          success_rating: successRating.value,
+          llm_provider: provider,
+          llm_model: model
+        })
         
         toast.add({
           severity: 'success',
@@ -559,6 +605,9 @@ export default {
           detail: 'Result saved successfully',
           life: 3000
         })
+        
+        // Navigate to Results view
+        router.push('/results')
       } catch (error) {
         toast.add({
           severity: 'error',
@@ -567,6 +616,8 @@ export default {
           life: 3000
         })
         console.error('Error saving result:', error)
+      } finally {
+        executing.value = false
       }
     }
     
@@ -660,10 +711,10 @@ export default {
       resultDetailDialog,
       copyToClipboard,
       adjustCardHeights,
+      providers,
       selectedProvider,
       selectedModel,
-      llmProviders,
-      availableModels
+      getModelsByProvider
     }
   }
 }

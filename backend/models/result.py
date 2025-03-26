@@ -2,7 +2,8 @@ from database.db_setup import get_db
 
 class Result:
     def __init__(self, id=None, attack_id=None, prompt_id=None, original_prompt=None, 
-                 jailbreak_prompt=None, model_response=None, success_rating=None, created_at=None):
+                 jailbreak_prompt=None, model_response=None, success_rating=None, 
+                 llm_provider=None, llm_model=None, created_at=None):
         self.id = id
         self.attack_id = attack_id
         self.prompt_id = prompt_id
@@ -10,6 +11,8 @@ class Result:
         self.jailbreak_prompt = jailbreak_prompt
         self.model_response = model_response
         self.success_rating = success_rating
+        self.llm_provider = llm_provider
+        self.llm_model = llm_model
         self.created_at = created_at
     
     @staticmethod
@@ -74,19 +77,22 @@ class Result:
         return [dict(result) for result in results]
     
     @staticmethod
-    def create(attack_id, prompt_id, original_prompt, jailbreak_prompt, model_response=None, success_rating=None):
+    def create(attack_id, prompt_id, original_prompt, jailbreak_prompt, model_response=None, 
+               success_rating=None, llm_provider=None, llm_model=None):
         db = get_db()
         cursor = db.execute(
             '''INSERT INTO results 
-               (attack_id, prompt_id, original_prompt, jailbreak_prompt, model_response, success_rating) 
-               VALUES (?, ?, ?, ?, ?, ?)''',
-            (attack_id, prompt_id, original_prompt, jailbreak_prompt, model_response, success_rating)
+               (attack_id, prompt_id, original_prompt, jailbreak_prompt, model_response, 
+                success_rating, llm_provider, llm_model) 
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+            (attack_id, prompt_id, original_prompt, jailbreak_prompt, model_response, 
+             success_rating, llm_provider, llm_model)
         )
         db.commit()
         return cursor.lastrowid
     
     @staticmethod
-    def update(result_id, model_response=None, success_rating=None):
+    def update(result_id, model_response=None, success_rating=None, llm_provider=None, llm_model=None):
         db = get_db()
         
         # Get current values
@@ -96,11 +102,13 @@ class Result:
         
         # 打印日志以便调试
         print(f"Current result: {result}")
-        print(f"Updating with model_response: {model_response}, success_rating: {success_rating}")
+        print(f"Updating with model_response: {model_response}, success_rating: {success_rating}, provider: {llm_provider}, model: {llm_model}")
         
         # Update with new values or keep existing ones
         model_response = model_response if model_response is not None else result['model_response']
         success_rating = success_rating if success_rating is not None else result['success_rating']
+        llm_provider = llm_provider if llm_provider is not None else result.get('llm_provider')
+        llm_model = llm_model if llm_model is not None else result.get('llm_model')
         
         # 确保success_rating是整数或浮点数，且在1-5的范围内
         if success_rating is not None:
@@ -113,8 +121,8 @@ class Result:
                 success_rating = result['success_rating']
         
         db.execute(
-            'UPDATE results SET model_response = ?, success_rating = ? WHERE id = ?',
-            (model_response, success_rating, result_id)
+            'UPDATE results SET model_response = ?, success_rating = ?, llm_provider = ?, llm_model = ? WHERE id = ?',
+            (model_response, success_rating, llm_provider, llm_model, result_id)
         )
         db.commit()
         

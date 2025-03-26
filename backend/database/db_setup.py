@@ -66,6 +66,8 @@ def import_existing_data(source_db_path, target_db_path):
                     jailbreak_prompt TEXT NOT NULL,
                     model_response TEXT,
                     success_rating INTEGER,
+                    llm_provider TEXT,
+                    llm_model TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (attack_id) REFERENCES attacks (id),
                     FOREIGN KEY (prompt_id) REFERENCES prompts (id)
@@ -149,6 +151,8 @@ def init_db():
         jailbreak_prompt TEXT NOT NULL,
         model_response TEXT,
         success_rating INTEGER,
+        llm_provider TEXT,
+        llm_model TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (attack_id) REFERENCES attacks (id),
         FOREIGN KEY (prompt_id) REFERENCES prompts (id)

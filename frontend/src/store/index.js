@@ -191,20 +191,37 @@ export default createStore({
       }
     },
     
-    async executeAttack({ commit }, { attackId, prompt, llm_provider, llm_model }) {
+    async executeAttack({ commit }, { attackId, prompt }) {
       commit('SET_LOADING', true)
       try {
         const response = await axios.post(`${API_URL}/attacks/execute`, {
           attack_id: attackId,
-          prompt: prompt,
-          llm_provider: llm_provider,
-          llm_model: llm_model
+          prompt: prompt
         })
         commit('SET_JAILBREAK_RESULT', response.data)
         return response.data
       } catch (error) {
         commit('SET_ERROR', error.message || 'Failed to execute attack')
         console.error('Error executing attack:', error)
+        throw error
+      } finally {
+        commit('SET_LOADING', false)
+      }
+    },
+    
+    // 添加新的action，用于调用LLM API测试jailbreak prompt
+    async testWithLLM({ commit }, { prompt, provider = 'openai', model = null }) {
+      commit('SET_LOADING', true)
+      try {
+        const response = await axios.post(`${API_URL}/attacks/test-llm`, {
+          prompt,
+          provider,
+          model
+        })
+        return response.data
+      } catch (error) {
+        commit('SET_ERROR', error.message || 'Failed to test with LLM API')
+        console.error('Error testing with LLM:', error)
         throw error
       } finally {
         commit('SET_LOADING', false)

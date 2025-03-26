@@ -35,10 +35,17 @@ def get_result(result_id):
 
 @result_bp.route('/', methods=['POST'])
 def create_result():
+    """Create a new result"""
     data = request.get_json()
     
-    if not data or 'attack_id' not in data or 'original_prompt' not in data or 'jailbreak_prompt' not in data:
-        return jsonify({"error": "Attack ID, original prompt, and jailbreak prompt are required"}), 400
+    # Extract and validate data
+    if not data:
+        return jsonify({'error': 'Invalid data format'}), 400
+    
+    required_fields = ['attack_id', 'original_prompt', 'jailbreak_prompt']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'error': f'Missing required field: {field}'}), 400
     
     attack_id = data.get('attack_id')
     prompt_id = data.get('prompt_id')
@@ -46,6 +53,8 @@ def create_result():
     jailbreak_prompt = data.get('jailbreak_prompt')
     model_response = data.get('model_response')
     success_rating = data.get('success_rating')
+    llm_provider = data.get('llm_provider')
+    llm_model = data.get('llm_model')
     
     # Validate attack_id
     attack = Attack.get_by_id(attack_id)
@@ -58,31 +67,56 @@ def create_result():
         if prompt is None:
             return jsonify({"error": "Prompt not found"}), 404
     
-    result_id = Result.create(attack_id, prompt_id, original_prompt, jailbreak_prompt, model_response, success_rating)
-    return jsonify({"id": result_id, "message": "Result created successfully"}), 201
+    # Create the result
+    try:
+        result_id = Result.create(
+            attack_id=attack_id,
+            prompt_id=prompt_id,
+            original_prompt=original_prompt,
+            jailbreak_prompt=jailbreak_prompt,
+            model_response=model_response,
+            success_rating=success_rating,
+            llm_provider=llm_provider,
+            llm_model=llm_model
+        )
+        
+        new_result = Result.get_by_id(result_id)
+        return jsonify(new_result), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @result_bp.route('/<int:result_id>', methods=['PUT'])
 def update_result(result_id):
-    data = request.get_json()
+    """Update a result"""
+    result = Result.get_by_id(result_id)
+    if not result:
+        return jsonify({"error": "Result not found"}), 404
     
+    data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
     
     model_response = data.get('model_response')
     success_rating = data.get('success_rating')
+    llm_provider = data.get('llm_provider')
+    llm_model = data.get('llm_model')
     
-    # 打印日志以便调试
-    print(f"Updating result {result_id} with success_rating: {success_rating}")
+    # 确保至少有一个字段被更新
+    if model_response is None and success_rating is None and llm_provider is None and llm_model is None:
+        return jsonify({"error": "At least one field must be provided for update"}), 400
     
-    success = Result.update(result_id, model_response, success_rating)
+    success = Result.update(
+        result_id=result_id, 
+        model_response=model_response, 
+        success_rating=success_rating,
+        llm_provider=llm_provider,
+        llm_model=llm_model
+    )
     
-    if not success:
-        return jsonify({"error": "Result not found"}), 404
-    
-    # 获取更新后的结果
-    updated_result = Result.get_by_id(result_id)
-    
-    return jsonify({"message": "Result updated successfully", "result": updated_result})
+    if success:
+        return jsonify(Result.get_by_id(result_id))
+    else:
+        return jsonify({"error": "Failed to update result"}), 500
 
 @result_bp.route('/<int:result_id>', methods=['DELETE'])
 def delete_result(result_id):

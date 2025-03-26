@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify
 from models.attack import Attack
 from utils.jailbreak_algorithms import apply_jailbreak
-from utils.llm_service import llm_service
+from utils.llm_api import test_jailbreak
 import json
-import asyncio
+import os
 
 attack_bp = Blueprint('attack', __name__)
 
@@ -100,9 +100,9 @@ def batch_delete_attacks():
     })
 
 @attack_bp.route('/execute', methods=['POST'])
-async def execute_attack():
+def execute_attack():
     """
-    Execute a jailbreak attack on a prompt using real LLM APIs
+    Execute a jailbreak attack on a prompt
     """
     data = request.get_json()
     
@@ -111,39 +111,72 @@ async def execute_attack():
     
     attack_id = data.get('attack_id')
     prompt = data.get('prompt')
-    llm_provider = data.get('llm_provider', 'openai')  # 默认使用OpenAI
-    llm_model = data.get('llm_model')  # 可选的具体模型
     
     # Get the attack
     attack = Attack.get_by_id(attack_id)
     if attack is None:
         return jsonify({"error": "Attack not found"}), 404
     
+    # 调试输出
+    print(f"DEBUG: attack_id: {attack_id}")
+    print(f"DEBUG: attack found: {attack}")
+    
     algorithm_type = attack['algorithm_type']
     parameters = json.loads(attack['parameters']) if attack['parameters'] else {}
     
-    try:
-        # Generate jailbreak prompt
-        jailbreak_prompt = apply_jailbreak(prompt, algorithm_type, **parameters)
-        
-        # Get response from LLM
-        model_response = await llm_service.get_response(
-            jailbreak_prompt,
-            provider=llm_provider,
-            model=llm_model
-        )
-        
-        return jsonify({
-            "original_prompt": prompt,
-            "jailbreak_prompt": jailbreak_prompt,
-            "model_response": model_response,
-            "attack_name": attack['name'],
-            "attack_id": attack_id,
-            "llm_provider": llm_provider,
-            "llm_model": llm_model
-        })
+    # 调试输出
+    print(f"DEBUG: algorithm_type: {algorithm_type}")
+    print(f"DEBUG: parameters: {parameters}")
+
+    # Call the function in jailbreak_algorithms.py
+    jailbreak_prompt = apply_jailbreak(prompt, algorithm_type, **parameters)
     
-    except Exception as e:
+    return jsonify({
+        "original_prompt": prompt,
+        "jailbreak_prompt": jailbreak_prompt,
+        "attack_name": attack['name'],
+        "attack_id": attack_id
+    })
+
+@attack_bp.route('/test-llm', methods=['POST'])
+def test_with_llm():
+    """
+    Test a jailbreak prompt against a real LLM API
+    """
+    data = request.get_json()
+    
+    if not data or 'prompt' not in data:
+        return jsonify({"error": "Prompt is required"}), 400
+    
+    prompt = data.get('prompt')
+    provider = data.get('provider', 'openai')  # 默认使用OpenAI
+    model = data.get('model')                  # 可选模型参数
+    
+    # 从环境变量获取API密钥
+    if provider.lower() == 'openai':
+        api_key = os.environ.get('OPENAI_API_KEY')
+        default_model = 'gpt-3.5-turbo'
+    elif provider.lower() == 'anthropic':
+        api_key = os.environ.get('ANTHROPIC_API_KEY')
+        default_model = 'claude-instant-1.2'
+    else:
+        return jsonify({"error": f"Unsupported provider: {provider}"}), 400
+    
+    if not api_key:
+        return jsonify({"error": f"{provider.upper()}_API_KEY environment variable not set"}), 500
+    
+    # 使用指定的模型或默认模型
+    model = model or default_model
+    
+    try:
+        # 调用LLM API
+        response = test_jailbreak(prompt, provider, api_key, model)
+        
         return jsonify({
-            "error": f"Failed to execute attack: {str(e)}"
-        }), 500 
+            "provider": provider,
+            "model": model,
+            "prompt": prompt,
+            "response": response
+        })
+    except Exception as e:
+        return jsonify({"error": f"Error testing with LLM: {str(e)}"}), 500 

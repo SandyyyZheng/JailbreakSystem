@@ -12,7 +12,7 @@ The Jailbreak System consists of three main components:
 
 ## 🦾Updates
 
-03/26/2025: New functions on real LLM APIs is on the way! Switch to [feature/llm-api](https://github.com/SandyyyZheng/JailbreakSystem/tree/feature/llm-api) to follow up. 
+03/26/2025: New functions on real LLM APIs is on the way! Switch to branch [feature/llm-api](https://github.com/SandyyyZheng/JailbreakSystem/tree/feature/llm-api) to follow up. 
 
 ## 🙌 Demo
 
@@ -94,10 +94,10 @@ cd JailbreakSystem
 
 ## 📖 License
 
-This project is licensed under the MIT License.
+This project is MIT-licensed.
 
 ## 👻 Acknowledgments
 
 - OpenAI/Anthropic for providing the API
-- Undergraduate Graduation Design for HFUT
-- Relies **heavily** on Claude-3.5-sonnet and Claude-3.7-sonnet to construct framework and fix bugs. Kudos to AI🤖!
+- 2025 Graduation Design for HFUT
+- Relies **heavily** on [Cursor](https://www.cursor.com/) (mainly claude-3.5-sonnet & claude-3.7-sonnet) to construct framework and fix bugs. Kudos to AI🤖!

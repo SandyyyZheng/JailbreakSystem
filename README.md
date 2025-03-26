@@ -12,7 +12,7 @@ The Jailbreak System consists of three main components:
 
 ## 🦾Updates
 
-03/26/2025: New functions on real LLM APIs is on the way! Switch to feature/llm-api to follow up. 
+03/26/2025: New functions on real LLM APIs is on the way! Switch to [feature/llm-api](https://github.com/SandyyyZheng/JailbreakSystem/tree/feature/llm-api) to follow up. 
 
 ## 🙌 Demo
 

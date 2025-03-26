@@ -1,7 +1,9 @@
 from flask import Blueprint, request, jsonify
 from models.attack import Attack
 from utils.jailbreak_algorithms import apply_jailbreak
+from utils.llm_service import llm_service
 import json
+import asyncio
 
 attack_bp = Blueprint('attack', __name__)
 
@@ -98,9 +100,9 @@ def batch_delete_attacks():
     })
 
 @attack_bp.route('/execute', methods=['POST'])
-def execute_attack():
+async def execute_attack():
     """
-    Execute a jailbreak attack on a prompt
+    Execute a jailbreak attack on a prompt using real LLM APIs
     """
     data = request.get_json()
     
@@ -109,29 +111,39 @@ def execute_attack():
     
     attack_id = data.get('attack_id')
     prompt = data.get('prompt')
+    llm_provider = data.get('llm_provider', 'openai')  # 默认使用OpenAI
+    llm_model = data.get('llm_model')  # 可选的具体模型
     
     # Get the attack
     attack = Attack.get_by_id(attack_id)
     if attack is None:
         return jsonify({"error": "Attack not found"}), 404
     
-    # 调试输出
-    print(f"DEBUG: attack_id: {attack_id}")
-    print(f"DEBUG: attack found: {attack}")
-    
     algorithm_type = attack['algorithm_type']
     parameters = json.loads(attack['parameters']) if attack['parameters'] else {}
     
-    # 调试输出
-    print(f"DEBUG: algorithm_type: {algorithm_type}")
-    print(f"DEBUG: parameters: {parameters}")
-
-    # Call the function in jailbreak_algorithms.py
-    jailbreak_prompt = apply_jailbreak(prompt, algorithm_type, **parameters)
+    try:
+        # Generate jailbreak prompt
+        jailbreak_prompt = apply_jailbreak(prompt, algorithm_type, **parameters)
+        
+        # Get response from LLM
+        model_response = await llm_service.get_response(
+            jailbreak_prompt,
+            provider=llm_provider,
+            model=llm_model
+        )
+        
+        return jsonify({
+            "original_prompt": prompt,
+            "jailbreak_prompt": jailbreak_prompt,
+            "model_response": model_response,
+            "attack_name": attack['name'],
+            "attack_id": attack_id,
+            "llm_provider": llm_provider,
+            "llm_model": llm_model
+        })
     
-    return jsonify({
-        "original_prompt": prompt,
-        "jailbreak_prompt": jailbreak_prompt,
-        "attack_name": attack['name'],
-        "attack_id": attack_id
-    }) 
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to execute attack: {str(e)}"
+        }), 500 

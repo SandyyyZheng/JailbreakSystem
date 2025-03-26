@@ -191,12 +191,14 @@ export default createStore({
       }
     },
     
-    async executeAttack({ commit }, { attackId, prompt }) {
+    async executeAttack({ commit }, { attackId, prompt, llm_provider, llm_model }) {
       commit('SET_LOADING', true)
       try {
         const response = await axios.post(`${API_URL}/attacks/execute`, {
           attack_id: attackId,
-          prompt: prompt
+          prompt: prompt,
+          llm_provider: llm_provider,
+          llm_model: llm_model
         })
         commit('SET_JAILBREAK_RESULT', response.data)
         return response.data

@@ -54,6 +54,18 @@
                 </div>
                 
                 <div class="form-group">
+                  <label for="llm-provider">LLM Provider</label>
+                  <Dropdown id="llm-provider" v-model="selectedProvider" :options="llmProviders" optionLabel="name" 
+                            placeholder="Select LLM provider" class="w-full" />
+                </div>
+
+                <div class="form-group" v-if="selectedProvider">
+                  <label for="llm-model">LLM Model</label>
+                  <Dropdown id="llm-model" v-model="selectedModel" :options="availableModels" optionLabel="name" 
+                            placeholder="Select model" class="w-full" />
+                </div>
+                
+                <div class="form-group">
                   <Button v-if="promptSource && promptSource.value === 'category'"
                           label="Execute Batch Attack" icon="pi pi-bolt" class="p-button-primary w-full" 
                           @click="executeBatchAttack" :disabled="!isBatchFormValid" />
@@ -284,16 +296,43 @@ export default {
     ]
     const promptSource = ref(promptSources[0])
     
+    // LLM配置
+    const selectedProvider = ref(null);
+    const selectedModel = ref(null);
+    
+    const llmProviders = [
+      { name: 'OpenAI', value: 'openai' },
+      { name: 'Anthropic', value: 'anthropic' }
+    ];
+    
+    const modelsByProvider = {
+      openai: [
+        { name: 'GPT-4', value: 'gpt-4' },
+        { name: 'GPT-4 Turbo', value: 'gpt-4-turbo-preview' },
+        { name: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' }
+      ],
+      anthropic: [
+        { name: 'Claude 3 Opus', value: 'claude-3-opus-20240229' },
+        { name: 'Claude 3 Sonnet', value: 'claude-3-sonnet-20240229' },
+        { name: 'Claude 2.1', value: 'claude-2.1' }
+      ]
+    };
+    
+    const availableModels = computed(() => {
+      if (!selectedProvider.value) return [];
+      return modelsByProvider[selectedProvider.value.value] || [];
+    });
+    
     // Computed properties
     const isFormValid = computed(() => {
-      if (!selectedAttack.value) return false
+      if (!selectedAttack.value || !selectedProvider.value || !selectedModel.value) return false;
       
       if (promptSource.value.value === 'existing') {
-        return !!selectedPrompt.value
+        return !!selectedPrompt.value;
       } else if (promptSource.value.value === 'category') {
-        return !!selectedCategory.value
+        return !!selectedCategory.value;
       } else {
-        return !!customPrompt.value.trim()
+        return !!customPrompt.value.trim();
       }
     })
 
@@ -356,76 +395,62 @@ export default {
     }
 
     const executeBatchAttack = async () => {
-      if (!isBatchFormValid.value) return
+      if (!isBatchFormValid.value) return;
 
-      executing.value = true
-      batchResults.value = []
-      const categoryPrompts = prompts.value.filter(p => p.category === selectedCategory.value.name)
-      const totalPrompts = categoryPrompts.length
-      let processedCount = 0
+      executing.value = true;
+      batchResults.value = [];
+      const categoryPrompts = prompts.value.filter(p => p.category === selectedCategory.value.name);
+      const totalPrompts = categoryPrompts.length;
+      let processedCount = 0;
 
       try {
         for (const prompt of categoryPrompts) {
-          executionStatus.value = `Processing prompt ${++processedCount} of ${totalPrompts}...`
+          executionStatus.value = `正在处理提示词 ${++processedCount}/${totalPrompts}...`;
           
           const result = await store.dispatch('executeAttack', {
             attackId: selectedAttack.value.id,
-            prompt: prompt.content
-          })
-
-          // Simulate LLM response and auto-rating
-          const llmResponse = await simulateLLMResponse(result.jailbreak_prompt)
-          const autoRating = calculateAutoRating(llmResponse)
+            prompt: prompt.content,
+            llm_provider: selectedProvider.value.value,
+            llm_model: selectedModel.value.value
+          });
 
           batchResults.value.push({
             ...result,
-            model_response: llmResponse,
-            success_rating: autoRating
-          })
+            model_response: result.model_response,
+            success_rating: null  // 初始化为null，等待用户评分
+          });
 
-          // Save the result
+          // 保存结果
           await store.dispatch('createResult', {
             attack_id: selectedAttack.value.id,
             prompt_id: prompt.id,
             original_prompt: result.original_prompt,
             jailbreak_prompt: result.jailbreak_prompt,
-            model_response: llmResponse,
-            success_rating: autoRating
-          })
+            model_response: result.model_response,
+            success_rating: null
+          });
         }
 
         toast.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Batch attack completed: ${batchResults.value.length} prompts processed`,
+          summary: '批量执行完成',
+          detail: `已处理 ${batchResults.value.length} 个提示词`,
           life: 3000
-        })
+        });
       } catch (error) {
         toast.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to execute batch attack',
+          summary: '执行失败',
+          detail: '批量执行攻击时发生错误',
           life: 3000
-        })
-        console.error('Error executing batch attack:', error)
+        });
+        console.error('Error executing batch attack:', error);
       } finally {
-        executing.value = false
-        executionStatus.value = ''
-        setTimeout(adjustCardHeights, 100)
+        executing.value = false;
+        executionStatus.value = '';
+        setTimeout(adjustCardHeights, 100);
       }
-    }
-
-    const simulateLLMResponse = async (prompt) => {
-      // Simulate LLM response with a delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      return "This is a simulated response from the LLM. In a real implementation, this would be the actual response from the LLM API to the jailbreak prompt."
-    }
-
-    const calculateAutoRating = (response) => {
-      // TODO: Implement more sophisticated rating logic
-      // For now, randomly assign a rating between 2 and 5
-      return Math.floor(Math.random() * 4) + 2 // Returns 2, 3, 4, or 5
-    }
+    };
 
     const viewBatchResult = (result) => {
       jailbreakResult.value = result
@@ -437,44 +462,47 @@ export default {
     }
     
     const executeAttack = async () => {
-      if (!isFormValid.value) return
+      if (!isFormValid.value) return;
       
-      executing.value = true
-      jailbreakResult.value = null
-      modelResponse.value = ''
+      executing.value = true;
+      jailbreakResult.value = null;
+      modelResponse.value = '';
       
       try {
         const prompt = promptSource.value.value === 'existing' 
           ? selectedPrompt.value.content 
-          : customPrompt.value
+          : customPrompt.value;
         
         const result = await store.dispatch('executeAttack', {
           attackId: selectedAttack.value.id,
-          prompt: prompt
-        })
+          prompt: prompt,
+          llm_provider: selectedProvider.value.value,
+          llm_model: selectedModel.value.value
+        });
         
-        jailbreakResult.value = result
-        activeTabIndex.value = 0
+        jailbreakResult.value = result;
+        modelResponse.value = result.model_response;
+        activeTabIndex.value = 0;
         
         toast.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Attack executed successfully',
+          summary: '执行成功',
+          detail: '攻击已成功执行',
           life: 3000
-        })
+        });
       } catch (error) {
         toast.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to execute attack',
+          summary: '执行失败',
+          detail: '执行攻击时发生错误',
           life: 3000
-        })
-        console.error('Error executing attack:', error)
+        });
+        console.error('Error executing attack:', error);
       } finally {
-        executing.value = false
-        setTimeout(adjustCardHeights, 100)
+        executing.value = false;
+        setTimeout(adjustCardHeights, 100);
       }
-    }
+    };
     
     const testWithLLM = async () => {
       if (!jailbreakResult.value) return
@@ -631,7 +659,11 @@ export default {
       viewBatchResult,
       resultDetailDialog,
       copyToClipboard,
-      adjustCardHeights
+      adjustCardHeights,
+      selectedProvider,
+      selectedModel,
+      llmProviders,
+      availableModels
     }
   }
 }

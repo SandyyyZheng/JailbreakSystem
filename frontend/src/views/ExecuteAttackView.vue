@@ -47,6 +47,13 @@
                   <small class="text-secondary">All prompts in this category will be tested</small>
                 </div>
                 
+                <div v-if="promptSource && promptSource.value === 'category'" class="form-group">
+                  <label for="batch-model-selection">Select Model</label>
+                  <Dropdown id="batch-model-selection" v-model="selectedModel" :options="availableModels" 
+                            placeholder="Select a model" class="w-full" />
+                  <small class="text-secondary">The model to use for testing</small>
+                </div>
+                
                 <div v-if="promptSource && promptSource.value === 'custom'" class="form-group">
                   <label for="custom-prompt">Custom Prompt</label>
                   <Textarea id="custom-prompt" v-model="customPrompt" rows="5" class="w-full" 
@@ -171,9 +178,12 @@
                 </div>
                 
                 <div v-else class="form-group">
+                  <label for="model-selection">Select Model</label>
+                  <Dropdown id="model-selection" v-model="selectedModel" :options="availableModels" 
+                            placeholder="Select a model" class="w-full mb-2" />
                   <Button label="Test with LLM" icon="pi pi-send" class="p-button-secondary w-full" 
                           @click="testWithLLM" :disabled="!jailbreakResult" />
-                  <small>This will send the jailbreak prompt to an LLM API to test its effectiveness</small>
+                  <small>This will send the jailbreak prompt to the selected LLM API to test its effectiveness</small>
                 </div>
               </div>
             </div>
@@ -268,6 +278,8 @@ export default {
     const activeTabIndex = ref(0)
     const batchResults = ref([])
     const resultDetailDialog = ref(false)
+    const availableModels = ref([])
+    const selectedModel = ref(null)
     
     // Tabs
     const tabs = [
@@ -314,11 +326,14 @@ export default {
       try {
         await Promise.all([
           store.dispatch('fetchAttacks'),
-          store.dispatch('fetchPrompts')
+          store.dispatch('fetchPrompts'),
+          store.dispatch('fetchAvailableModels')
         ])
         
         attacks.value = store.state.attacks
         prompts.value = store.state.prompts
+        availableModels.value = store.state.availableModels
+        selectedModel.value = store.state.selectedModel
         
         // Extract unique categories
         const uniqueCategories = [...new Set(prompts.value.map(p => p.category).filter(Boolean))]
@@ -373,13 +388,18 @@ export default {
             prompt: prompt.content
           })
 
-          // Simulate LLM response and auto-rating
-          const llmResponse = await simulateLLMResponse(result.jailbreak_prompt)
-          const autoRating = calculateAutoRating(llmResponse)
+          // Use real LLM response instead of simulation
+          const llmResponse = await store.dispatch('testWithLLM', {
+            jailbreakPrompt: result.jailbreak_prompt,
+            model: selectedModel.value
+          })
+          
+          const modelResponse = llmResponse.model_response
+          const autoRating = calculateAutoRating(modelResponse)
 
           batchResults.value.push({
             ...result,
-            model_response: llmResponse,
+            model_response: modelResponse,
             success_rating: autoRating
           })
 
@@ -389,7 +409,8 @@ export default {
             prompt_id: prompt.id,
             original_prompt: result.original_prompt,
             jailbreak_prompt: result.jailbreak_prompt,
-            model_response: llmResponse,
+            model_response: modelResponse,
+            model: selectedModel.value,
             success_rating: autoRating
           })
         }
@@ -413,12 +434,6 @@ export default {
         executionStatus.value = ''
         setTimeout(adjustCardHeights, 100)
       }
-    }
-
-    const simulateLLMResponse = async (prompt) => {
-      // Simulate LLM response with a delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      return "This is a simulated response from the LLM. In a real implementation, this would be the actual response from the LLM API to the jailbreak prompt."
     }
 
     const calculateAutoRating = (response) => {
@@ -483,17 +498,19 @@ export default {
       modelResponse.value = ''
       
       try {
-        // This would normally call an API to test with a real LLM
-        // For now, we'll simulate a response
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        // Call the real LLM API
+        const result = await store.dispatch('testWithLLM', {
+          jailbreakPrompt: jailbreakResult.value.jailbreak_prompt,
+          model: selectedModel.value
+        })
         
-        modelResponse.value = "This is a simulated response from the LLM. In a real implementation, this would be the actual response from the LLM API to the jailbreak prompt."
+        modelResponse.value = result.model_response
         activeTabIndex.value = 2
         
         toast.add({
           severity: 'info',
           summary: 'Response Received',
-          detail: 'LLM response received',
+          detail: `Response received from ${result.model}`,
           life: 3000
         })
       } catch (error) {
@@ -520,6 +537,7 @@ export default {
           original_prompt: jailbreakResult.value.original_prompt,
           jailbreak_prompt: jailbreakResult.value.jailbreak_prompt,
           model_response: modelResponse.value,
+          model: selectedModel.value,
           success_rating: successRating.value
         }
         
@@ -631,7 +649,9 @@ export default {
       viewBatchResult,
       resultDetailDialog,
       copyToClipboard,
-      adjustCardHeights
+      adjustCardHeights,
+      availableModels,
+      selectedModel
     }
   }
 }

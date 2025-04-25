@@ -19,15 +19,15 @@ class LLMProvider:
         raise NotImplementedError("Subclasses must implement this method")
 
 
-class OpenAIProvider(LLMProvider):
-    """Provider for OpenAI API"""
+class DeepBricksProvider(LLMProvider):
+    """Provider for DeepBricks API which supports multiple models"""
     
-    env_var_name = "OPENAI_API_KEY"
+    env_var_name = "LLM_API_KEY"
     
-    def __init__(self, api_key=None, model="gpt-3.5-turbo"):
+    def __init__(self, api_key=None, model="gpt-4o-mini"):
         super().__init__(api_key)
         self.model = model
-        self.api_url = "https://api.openai.com/v1/chat/completions"
+        self.api_url = os.environ.get("LLM_API_URL", "https://api.deepbricks.ai/v1/chat/completions")
     
     def generate_response(self, prompt, max_tokens=100, temperature=0.7):
         headers = {
@@ -47,60 +47,48 @@ class OpenAIProvider(LLMProvider):
             response.raise_for_status()
             return response.json()["choices"][0]["message"]["content"]
         except Exception as e:
-            print(f"Error calling OpenAI API: {e}")
+            print(f"Error calling DeepBricks API: {e}")
             return f"Error: {str(e)}"
 
 
-class AnthropicProvider(LLMProvider):
-    """Provider for Anthropic API"""
-    
-    env_var_name = "ANTHROPIC_API_KEY"
-    
-    def __init__(self, api_key=None, model="claude-2"):
-        super().__init__(api_key)
-        self.model = model
-        self.api_url = "https://api.anthropic.com/v1/complete"
-    
-    def generate_response(self, prompt, max_tokens=100, temperature=0.7):
-        headers = {
-            "Content-Type": "application/json",
-            "x-api-key": self.api_key
-        }
-        
-        data = {
-            "model": self.model,
-            "prompt": f"\n\nHuman: {prompt}\n\nAssistant:",
-            "max_tokens_to_sample": max_tokens,
-            "temperature": temperature
-        }
-        
-        try:
-            response = requests.post(self.api_url, headers=headers, data=json.dumps(data))
-            response.raise_for_status()
-            return response.json()["completion"]
-        except Exception as e:
-            print(f"Error calling Anthropic API: {e}")
-            return f"Error: {str(e)}"
-
-
-# Factory function to get the appropriate provider
-def get_llm_provider(provider_name="openai", api_key=None, model=None):
-    if provider_name.lower() == "openai":
-        return OpenAIProvider(api_key=api_key, model=model or "gpt-3.5-turbo")
-    elif provider_name.lower() == "anthropic":
-        return AnthropicProvider(api_key=api_key, model=model or "claude-2")
-    else:
-        raise ValueError(f"Unsupported provider: {provider_name}")
+# Get available models for DeepBricks
+def get_available_models():
+    """
+    Return a list of available models for the user interface
+    """
+    return [
+        "gpt-4o-mini", 
+        "gpt-4o-2024-08-06", 
+        "gpt-4-turbo", 
+        "claude-3.5-sonnet"
+    ]
 
 
 # Function to test a jailbreak prompt against an LLM
-def test_jailbreak(jailbreak_prompt, provider_name="openai", api_key=None, model=None, max_tokens=200):
+def test_jailbreak(jailbreak_prompt, model=None, max_tokens=200, temperature=0.7):
     """
     Test a jailbreak prompt against an LLM and return the response
+    
+    Args:
+        jailbreak_prompt (str): The jailbreak prompt to test
+        model (str): The model to use (default uses the environment variable)
+        max_tokens (int): Maximum number of tokens to generate
+        temperature (float): Temperature for generation (higher = more random)
+        
+    Returns:
+        str: The model's response
     """
     try:
-        provider = get_llm_provider(provider_name, api_key, model)
-        response = provider.generate_response(jailbreak_prompt, max_tokens=max_tokens)
+        # Use the model from parameters or default to environment variable
+        model_to_use = model or os.environ.get("LLM_MODEL", "gpt-4o-mini")
+        api_key = os.environ.get("LLM_API_KEY")
+        
+        provider = DeepBricksProvider(api_key=api_key, model=model_to_use)
+        response = provider.generate_response(
+            jailbreak_prompt, 
+            max_tokens=max_tokens,
+            temperature=temperature
+        )
         return response
     except Exception as e:
         print(f"Error testing jailbreak: {e}")

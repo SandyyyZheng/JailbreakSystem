@@ -49,6 +49,11 @@
         <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
         <Column field="id" header="ID" sortable style="width: 5rem"></Column>
         <Column field="attack_name" header="Attack" sortable style="width: 10rem"></Column>
+        <Column field="model" header="Model" sortable style="width: 12rem">
+          <template #body="slotProps">
+            <div>{{ slotProps.data.model || 'Not specified' }}</div>
+          </template>
+        </Column>
         <Column field="original_prompt" header="Original Prompt" sortable>
           <template #body="slotProps">
             <div class="truncated-text">{{ slotProps.data.original_prompt }}</div>
@@ -92,6 +97,10 @@
                 <span class="detail-value">{{ selectedResult.attack_name }}</span>
               </div>
               <div class="detail-item">
+                <span class="detail-label">Model:</span>
+                <span class="detail-value">{{ selectedResult.model || 'Not specified' }}</span>
+              </div>
+              <div class="detail-item">
                 <span class="detail-label">Harmful Score:</span>
                 <span class="detail-value">
                   <Rating v-model="selectedResult.success_rating" :readonly="true" :cancel="false" :stars="5" />
@@ -109,6 +118,11 @@
             <div class="detail-section">
               <h3>Edit Harmful Score</h3>
               <div class="p-field">
+                <label for="model">Model Name</label>
+                <div class="p-inputgroup mb-3">
+                  <InputText id="model" v-model="editedModel" placeholder="Enter model name" class="w-full" />
+                </div>
+                
                 <label for="rating">Harmful Score (1-5)</label>
                 <div class="p-inputgroup mb-3">
                   <Rating v-model="editedRating" :cancel="false" :stars="5" />
@@ -225,6 +239,7 @@ export default {
     const selectedCategory = ref(null);
     const selectedResult = ref(null);
     const editedRating = ref(0);
+    const editedModel = ref('');
     const loading = ref(true);
     const resultDetailDialog = ref(false);
     const deleteResultDialog = ref(false);
@@ -294,6 +309,7 @@ export default {
     const viewResult = (result) => {
       selectedResult.value = { ...result };
       editedRating.value = result.success_rating ? Math.min(Math.max(parseInt(result.success_rating), 1), 5) : 5;
+      editedModel.value = result.model || '';
       resultDetailDialog.value = true;
     };
     
@@ -330,43 +346,42 @@ export default {
     };
     
     const updateRating = async () => {
+      if (!selectedResult.value) return;
+      
       try {
-        // Ensure rating is within 1-5 range
-        const validRating = Math.min(Math.max(parseInt(editedRating.value) || 5, 1), 5);
-        editedRating.value = validRating;
-        
-        const updatedResult = await store.dispatch('updateResult', {
+        await store.dispatch('updateResult', {
           resultId: selectedResult.value.id,
           resultData: {
-            success_rating: validRating
+            success_rating: editedRating.value,
+            model: editedModel.value || null
           }
         });
         
-        console.log('Updated result from server:', updatedResult);
+        // Update the local data
+        selectedResult.value.success_rating = editedRating.value;
+        selectedResult.value.model = editedModel.value || null;
         
-        // Update the displayed rating
-        selectedResult.value.success_rating = validRating;
-        
-        // Also update in the results list
+        // Update the results list
         const index = results.value.findIndex(r => r.id === selectedResult.value.id);
         if (index !== -1) {
-          results.value[index].success_rating = validRating;
+          results.value[index].success_rating = editedRating.value;
+          results.value[index].model = editedModel.value || null;
         }
         
         toast.add({
           severity: 'success',
           summary: 'Success',
-          detail: 'Score updated',
+          detail: 'Result updated successfully',
           life: 3000
         });
       } catch (error) {
-        console.error('Error updating rating:', error);
         toast.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Failed to update score',
+          detail: 'Failed to update result',
           life: 3000
         });
+        console.error('Error updating result:', error);
       }
     };
     
@@ -515,6 +530,7 @@ export default {
       selectedCategory,
       selectedResult,
       editedRating,
+      editedModel,
       loading,
       filters,
       resultDetailDialog,

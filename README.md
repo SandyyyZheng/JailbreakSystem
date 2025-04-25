@@ -12,7 +12,7 @@ The Jailbreak System consists of three main components:
 
 ## 🦾Updates
 
-03/26/2025: New functions on real LLM APIs is on the way! Switch to branch [feature/llm-api](https://github.com/SandyyyZheng/JailbreakSystem/tree/feature/llm-api) to follow up. 
+04/25/2025: Enables real LLM APIs (gpt-4o-mini, gpt-4o-2024-0806, gpt-4-turbo, claude-3.5-sonnet)
 
 ## 🙌 Demo
 

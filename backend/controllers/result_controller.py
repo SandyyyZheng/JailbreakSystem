@@ -45,6 +45,7 @@ def create_result():
     original_prompt = data.get('original_prompt')
     jailbreak_prompt = data.get('jailbreak_prompt')
     model_response = data.get('model_response')
+    model = data.get('model')
     success_rating = data.get('success_rating')
     
     # Validate attack_id
@@ -58,7 +59,15 @@ def create_result():
         if prompt is None:
             return jsonify({"error": "Prompt not found"}), 404
     
-    result_id = Result.create(attack_id, prompt_id, original_prompt, jailbreak_prompt, model_response, success_rating)
+    result_id = Result.create(
+        attack_id, 
+        prompt_id, 
+        original_prompt, 
+        jailbreak_prompt, 
+        model_response, 
+        model,
+        success_rating
+    )
     return jsonify({"id": result_id, "message": "Result created successfully"}), 201
 
 @result_bp.route('/<int:result_id>', methods=['PUT'])
@@ -69,12 +78,13 @@ def update_result(result_id):
         return jsonify({"error": "No data provided"}), 400
     
     model_response = data.get('model_response')
+    model = data.get('model')
     success_rating = data.get('success_rating')
     
     # 打印日志以便调试
-    print(f"Updating result {result_id} with success_rating: {success_rating}")
+    print(f"Updating result {result_id} with model: {model}, success_rating: {success_rating}")
     
-    success = Result.update(result_id, model_response, success_rating)
+    success = Result.update(result_id, model_response, model, success_rating)
     
     if not success:
         return jsonify({"error": "Result not found"}), 404

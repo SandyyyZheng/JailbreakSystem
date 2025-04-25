@@ -13,7 +13,9 @@ export default createStore({
     error: null,
     currentAttack: null,
     currentPrompt: null,
-    jailbreakResult: null
+    jailbreakResult: null,
+    availableModels: [],
+    selectedModel: null
   },
   
   getters: {
@@ -91,6 +93,12 @@ export default createStore({
     },
     DELETE_RESULT(state, resultId) {
       state.results = state.results.filter(result => result.id !== resultId)
+    },
+    SET_AVAILABLE_MODELS(state, models) {
+      state.availableModels = models
+    },
+    SET_SELECTED_MODEL(state, model) {
+      state.selectedModel = model
     }
   },
   
@@ -204,6 +212,44 @@ export default createStore({
         commit('SET_ERROR', error.message || 'Failed to execute attack')
         console.error('Error executing attack:', error)
         throw error
+      } finally {
+        commit('SET_LOADING', false)
+      }
+    },
+    
+    async testWithLLM({ commit, state }, { jailbreakPrompt, model, maxTokens, temperature }) {
+      commit('SET_LOADING', true)
+      try {
+        const response = await axios.post(`${API_URL}/attacks/test-with-llm`, {
+          jailbreak_prompt: jailbreakPrompt,
+          model: model || state.selectedModel,
+          max_tokens: maxTokens || 200,
+          temperature: temperature || 0.7
+        })
+        return response.data
+      } catch (error) {
+        commit('SET_ERROR', error.message || 'Failed to test with LLM')
+        console.error('Error testing with LLM:', error)
+        throw error
+      } finally {
+        commit('SET_LOADING', false)
+      }
+    },
+    
+    async fetchAvailableModels({ commit }) {
+      commit('SET_LOADING', true)
+      try {
+        const response = await axios.get(`${API_URL}/attacks/available-models`)
+        commit('SET_AVAILABLE_MODELS', response.data.models)
+        // Set the first model as selected by default if no model is selected
+        if (response.data.models.length > 0) {
+          commit('SET_SELECTED_MODEL', response.data.models[0])
+        }
+        return response.data.models
+      } catch (error) {
+        commit('SET_ERROR', error.message || 'Failed to fetch available models')
+        console.error('Error fetching available models:', error)
+        return []
       } finally {
         commit('SET_LOADING', false)
       }
@@ -361,7 +407,13 @@ export default createStore({
     async createResult({ commit }, resultData) {
       commit('SET_LOADING', true)
       try {
-        const response = await axios.post(`${API_URL}/results/`, resultData)
+        // Make sure resultData has the model field if provided
+        const dataToSend = {
+          ...resultData,
+          model: resultData.model || null
+        }
+        
+        const response = await axios.post(`${API_URL}/results/`, dataToSend)
         const newResult = { ...resultData, id: response.data.id }
         commit('ADD_RESULT', newResult)
         return response.data
@@ -377,7 +429,13 @@ export default createStore({
     async updateResult({ commit }, { resultId, resultData }) {
       commit('SET_LOADING', true)
       try {
-        const response = await axios.put(`${API_URL}/results/${resultId}`, resultData)
+        // Make sure resultData has the model field if provided
+        const dataToSend = {
+          ...resultData,
+          model: resultData.model || null
+        }
+        
+        const response = await axios.put(`${API_URL}/results/${resultId}`, dataToSend)
         const currentResult = await axios.get(`${API_URL}/results/${resultId}`)
         const updatedResult = { ...currentResult.data, ...resultData }
         commit('UPDATE_RESULT', updatedResult)

@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from models.attack import Attack
 from utils.jailbreak_algorithms import apply_jailbreak
+from utils.llm_api import test_jailbreak, get_available_models
 import json
 
 attack_bp = Blueprint('attack', __name__)
@@ -134,4 +135,45 @@ def execute_attack():
         "jailbreak_prompt": jailbreak_prompt,
         "attack_name": attack['name'],
         "attack_id": attack_id
+    })
+
+@attack_bp.route('/test-with-llm', methods=['POST'])
+def test_with_llm():
+    """
+    Test a jailbreak prompt with an LLM and return the response
+    """
+    data = request.get_json()
+    
+    if not data or 'jailbreak_prompt' not in data:
+        return jsonify({"error": "Jailbreak prompt is required"}), 400
+    
+    jailbreak_prompt = data.get('jailbreak_prompt')
+    model = data.get('model')  # Optional, will use default if not provided
+    max_tokens = data.get('max_tokens', 200)  # Optional, default is 200
+    temperature = data.get('temperature', 0.7)  # Optional, default is 0.7
+    
+    # 调试输出
+    print(f"DEBUG: Testing jailbreak prompt with model: {model}")
+    
+    # Call the LLM API
+    response = test_jailbreak(
+        jailbreak_prompt=jailbreak_prompt,
+        model=model,
+        max_tokens=max_tokens,
+        temperature=temperature
+    )
+    
+    return jsonify({
+        "model": model or "default",
+        "model_response": response
+    })
+
+@attack_bp.route('/available-models', methods=['GET'])
+def available_models():
+    """
+    Get a list of available models for testing
+    """
+    models = get_available_models()
+    return jsonify({
+        "models": models
     }) 

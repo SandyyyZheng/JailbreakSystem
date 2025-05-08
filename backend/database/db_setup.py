@@ -71,6 +71,14 @@ def import_existing_data(source_db_path, target_db_path):
                     FOREIGN KEY (attack_id) REFERENCES attacks (id),
                     FOREIGN KEY (prompt_id) REFERENCES prompts (id)
                 );
+                
+                CREATE TABLE IF NOT EXISTS standard_qa (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    prompt TEXT NOT NULL,
+                    standard_response TEXT NOT NULL,
+                    category TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
             ''')
             
             # 导入每个表的数据
@@ -154,6 +162,16 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (attack_id) REFERENCES attacks (id),
         FOREIGN KEY (prompt_id) REFERENCES prompts (id)
+    )
+    ''')
+    
+    db.execute('''
+    CREATE TABLE IF NOT EXISTS standard_qa (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        prompt TEXT NOT NULL,
+        standard_response TEXT NOT NULL,
+        category TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     ''')
     

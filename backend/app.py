@@ -6,6 +6,8 @@ from database.db_setup import init_db
 from controllers.attack_controller import attack_bp
 from controllers.prompt_controller import prompt_bp
 from controllers.result_controller import result_bp
+from controllers.standard_qa_controller import standard_qa_bp
+from utils.init_qa_data import init_qa_data
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -32,10 +34,13 @@ app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change this in production
 app.register_blueprint(attack_bp, url_prefix='/api/attacks')
 app.register_blueprint(prompt_bp, url_prefix='/api/prompts')
 app.register_blueprint(result_bp, url_prefix='/api/results')
+app.register_blueprint(standard_qa_bp, url_prefix='/api/standard-qa')
 
 # Initialize database
 with app.app_context():
     init_db()
+    # 初始化标准问答数据
+    init_qa_data()
 
 @app.route('/')
 def index():

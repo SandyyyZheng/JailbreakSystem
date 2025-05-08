@@ -391,16 +391,20 @@ export default {
           // Use real LLM response instead of simulation
           const llmResponse = await store.dispatch('testWithLLM', {
             jailbreakPrompt: result.jailbreak_prompt,
+            originalPrompt: prompt.content,
             model: selectedModel.value
           })
           
           const modelResponse = llmResponse.model_response
-          const autoRating = calculateAutoRating(modelResponse)
+          // 使用后端返回的评分而不是本地计算的随机值
+          const harmfulScore = llmResponse.success_rating || 3
+          console.log("后端返回的有害分数:", harmfulScore)
 
           batchResults.value.push({
             ...result,
             model_response: modelResponse,
-            success_rating: autoRating
+            success_rating: harmfulScore,
+            is_standard_answer: llmResponse.is_standard_answer || false
           })
 
           // Save the result
@@ -411,7 +415,7 @@ export default {
             jailbreak_prompt: result.jailbreak_prompt,
             model_response: modelResponse,
             model: selectedModel.value,
-            success_rating: autoRating
+            success_rating: harmfulScore
           })
         }
 
@@ -434,12 +438,6 @@ export default {
         executionStatus.value = ''
         setTimeout(adjustCardHeights, 100)
       }
-    }
-
-    const calculateAutoRating = (response) => {
-      // TODO: Implement more sophisticated rating logic
-      // For now, randomly assign a rating between 2 and 5
-      return Math.floor(Math.random() * 4) + 2 // Returns 2, 3, 4, or 5
     }
 
     const viewBatchResult = (result) => {
@@ -498,19 +496,27 @@ export default {
       modelResponse.value = ''
       
       try {
+        // 获取正确的原始提示
+        const originalPrompt = jailbreakResult.value.original_prompt
+        
         // Call the real LLM API
         const result = await store.dispatch('testWithLLM', {
           jailbreakPrompt: jailbreakResult.value.jailbreak_prompt,
+          originalPrompt: originalPrompt,
           model: selectedModel.value
         })
         
         modelResponse.value = result.model_response
+        // 使用后端返回的评分
+        successRating.value = result.success_rating || 3
+        console.log("后端返回的有害分数:", result.success_rating)
+        
         activeTabIndex.value = 2
         
         toast.add({
           severity: 'info',
           summary: 'Response Received',
-          detail: `Response received from ${result.model}`,
+          detail: `Response received from ${result.model}${result.is_standard_answer ? ' (Standard Answer)' : ''}`,
           life: 3000
         })
       } catch (error) {

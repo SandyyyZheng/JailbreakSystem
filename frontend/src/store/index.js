@@ -217,11 +217,12 @@ export default createStore({
       }
     },
     
-    async testWithLLM({ commit, state }, { jailbreakPrompt, model, maxTokens, temperature }) {
+    async testWithLLM({ commit, state }, { jailbreakPrompt, originalPrompt, model, maxTokens, temperature }) {
       commit('SET_LOADING', true)
       try {
         const response = await axios.post(`${API_URL}/attacks/test-with-llm`, {
           jailbreak_prompt: jailbreakPrompt,
+          original_prompt: originalPrompt,
           model: model || state.selectedModel,
           max_tokens: maxTokens || 200,
           temperature: temperature || 0.7

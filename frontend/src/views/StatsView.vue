@@ -52,10 +52,10 @@
       <!-- Category Selector -->
       <div class="card mt-4">
         <div class="category-selector">
-          <h2>Filter by Prompt Dataset</h2>
+          <h2>Filter by Model</h2>
           <div class="p-field">
-            <Dropdown v-model="selectedCategory" :options="categories" 
-                     optionLabel="name" placeholder="Select a dataset"
+            <Dropdown v-model="selectedModel" :options="modelOptions" 
+                     optionLabel="name" placeholder="Select a model"
                      class="w-full md:w-20rem" />
           </div>
         </div>
@@ -63,7 +63,7 @@
       
       <!-- Attack Stats -->
       <div class="card mt-4">
-        <h2>Attack Performance {{ selectedCategory.name !== 'All' ? '- ' + selectedCategory.name + ' Category' : '(Average across datasets)' }}</h2>
+        <h2>Attack Performance {{ selectedModel.name !== 'All' ? '- ' + selectedModel.name + ' Model' : '(Average across models)' }}</h2>
         <div class="grid">
           <div class="col-12 md:col-6">
             <DataTable :value="filteredAttackStats" 
@@ -118,14 +118,14 @@
         </div>
       </div>
       
-      <!-- Dataset Comparison (NEW) -->
-      <div v-if="categories.length > 1" class="card mt-4">
-        <h2 class="chart-title text-left">Dataset Comparison</h2>
+      <!-- Model Comparison (NEW) -->
+      <div v-if="modelOptions.length > 1" class="card mt-4">
+        <h2 class="chart-title text-left">Model Comparison</h2>
         <div class="grid">
           <div class="col-12">
             <div class="chart-container stacked-bar-chart-container">
-              <h3 class="chart-title text-center">Attack Success Rate by Dataset</h3>
-              <Chart type="bar" :data="categoryComparisonData" :options="categoryComparisonOptions" />
+              <h3 class="chart-title text-center">Attack Success Rate by Model</h3>
+              <Chart type="bar" :data="modelComparisonData" :options="modelComparisonOptions" />
             </div>
           </div>
         </div>
@@ -152,20 +152,20 @@ export default {
     // Data
     const stats = ref({});
     const loading = ref(true);
-    const categories = ref([]);
-    const selectedCategory = ref({ name: 'All', value: 'All' });
+    const modelOptions = ref([]);
+    const selectedModel = ref({ name: 'All', value: 'All' });
     
-    // 获取当前选择的类别下的攻击统计数据
+    // 获取当前选择的模型下的攻击统计数据
     const filteredAttackStats = computed(() => {
       if (!stats.value) return [];
       
-      // 处理原始数据，按照当前选择的类别过滤
-      if (selectedCategory.value.name === 'All') {
+      // 处理原始数据，按照当前选择的模型过滤
+      if (selectedModel.value.name === 'All') {
         return stats.value.attack_stats || [];
       } else {
-        // 从后端数据中获取特定类别的攻击数据
-        const categoryStats = stats.value.attack_stats_by_category?.[selectedCategory.value.name];
-        return categoryStats || [];
+        // 从后端数据中获取特定模型的攻击数据
+        const modelStats = stats.value.attack_stats_by_model?.[selectedModel.value.name];
+        return modelStats || [];
       }
     });
     
@@ -178,7 +178,7 @@ export default {
           stats.value = response;
           
           // 设置类别选项
-          setupCategoryOptions();
+          setupModelOptions();
         } else {
           stats.value = {
             total_results: 0,
@@ -201,26 +201,26 @@ export default {
     };
     
     // 设置类别选项
-    const setupCategoryOptions = () => {
-      // 首先添加"All"类别
-      categories.value = [
+    const setupModelOptions = () => {
+      // 首先添加"All"选项
+      modelOptions.value = [
         { name: 'All', value: 'All' },
       ];
       
-      // 从API结果中添加其他类别
-      if (stats.value && stats.value.categories) {
-        stats.value.categories.forEach(category => {
-          categories.value.push({ name: category, value: category });
+      // 从API结果中添加所有可用模型
+      if (stats.value && stats.value.models) {
+        stats.value.models.forEach(model => {
+          modelOptions.value.push({ name: model, value: model });
         });
       } else {
-        // 如果API没有返回类别数据，使用默认类别
-        const defaultCategories = ['Illegal', 'Harmful', 'Unethical', 'Offensive'];
-        defaultCategories.forEach(category => {
-          categories.value.push({ name: category, value: category });
+        // 如果API没有返回模型数据，使用默认模型
+        const defaultModels = ['gpt-4', 'gpt-3.5-turbo', 'llama-2'];
+        defaultModels.forEach(model => {
+          modelOptions.value.push({ name: model, value: model });
         });
       }
       
-      selectedCategory.value = categories.value[0];
+      selectedModel.value = modelOptions.value[0];
     };
     
     const formatPercentage = (value) => {
@@ -479,40 +479,41 @@ export default {
       }
     };
     
-    // 添加类别比较图表数据
-    const categoryComparisonData = computed(() => {
-      if (!stats.value || !stats.value.attack_stats || !stats.value.attack_stats_by_category) {
-        return { labels: [], datasets: [] };
-      }
+    // 模型比较图表数据
+    const modelComparisonData = computed(() => {
+      if (!stats.value || !stats.value.attack_stats_by_model) return { labels: [], datasets: [] };
       
-      // 获取所有攻击名称作为标签
+      // 获取所有攻击算法名称
       const attackNames = stats.value.attack_stats.map(attack => attack.name);
       
-      // 为每个类别创建一个数据集
+      // 为每个模型创建一个数据集
       const datasets = [];
-      const categoryColors = assignColorsByCategory(
-        Object.keys(stats.value.attack_stats_by_category)
-      );
+      const colors = getColorsList();
+      let colorIndex = 0;
       
-      // 为每个类别创建数据集
-      Object.entries(stats.value.attack_stats_by_category).forEach(([category, categoryStats]) => {
-        // 获取该类别下每个攻击的ASR
-        const categoryData = attackNames.map(attackName => {
-          // 查找该攻击在该类别下的数据
-          const attack = categoryStats.find(a => a.name === attackName);
-          
-          if (attack && attack.total_attempts > 0) {
-            return (attack.harmful_attempts / attack.total_attempts) * 100;
+      // 添加所有模型的数据
+      for (const [modelName, modelStats] of Object.entries(stats.value.attack_stats_by_model)) {
+        // 创建模型数据集
+        const dataset = {
+          label: modelName,
+          backgroundColor: colors[colorIndex % colors.length],
+          data: []
+        };
+        
+        // 为每个攻击算法计算成功率
+        attackNames.forEach(attackName => {
+          const attackStat = modelStats.find(stat => stat.name === attackName);
+          if (attackStat && attackStat.total_attempts > 0) {
+            const successRate = attackStat.harmful_attempts / attackStat.total_attempts;
+            dataset.data.push(successRate * 100); // 转换为百分比
+          } else {
+            dataset.data.push(0);
           }
-          return 0;
         });
         
-        datasets.push({
-          label: category,
-          backgroundColor: categoryColors[category],
-          data: categoryData
-        });
-      });
+        datasets.push(dataset);
+        colorIndex++;
+      }
       
       return {
         labels: attackNames,
@@ -520,39 +521,52 @@ export default {
       };
     });
     
-    const categoryComparisonOptions = {
-      scales: {
-        x: {
-          stacked: false,
+    // 模型比较图表选项
+    const modelComparisonOptions = computed(() => {
+      return {
+        plugins: {
+          legend: {
+            position: 'top',
+          },
           title: {
             display: true,
-            text: 'Attack Name'
-          }
-        },
-        y: {
-          stacked: false,
-          beginAtZero: true,
-          max: 100,
-          title: {
-            display: true,
-            text: 'Attack Success Rate (%)'
-          }
-        }
-      },
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              return context.dataset.label + ': ' + context.raw.toFixed(1) + '%';
+            text: 'Model Comparison by Attack Success Rate'
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.dataset.label}: ${context.raw.toFixed(1)}%`;
+              }
             }
           }
+        },
+        responsive: true,
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Attack Algorithm'
+            },
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Attack Success Rate (%)'
+            },
+            min: 0,
+            max: 100
+          }
         }
-      }
-    };
+      };
+    });
     
     // 监听类别变化
-    watch(selectedCategory, () => {
-      console.log(`Dataset changed to: ${selectedCategory.value.name}`);
+    watch(selectedModel, () => {
+      console.log(`Model changed to: ${selectedModel.value.name}`);
     });
     
     // Lifecycle hooks
@@ -563,8 +577,8 @@ export default {
     return {
       stats,
       loading,
-      categories,
-      selectedCategory,
+      modelOptions,
+      selectedModel,
       filteredAttackStats,
       formatPercentage,
       formatRating,
@@ -577,8 +591,8 @@ export default {
       pieChartOptions,
       radarChartData,
       radarChartOptions,
-      categoryComparisonData,
-      categoryComparisonOptions
+      modelComparisonData,
+      modelComparisonOptions
     };
   }
 }

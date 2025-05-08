@@ -13,6 +13,7 @@ The Jailbreak System consists of three main components:
 ## 🦾Updates
 
 04/25/2025: Enables real LLM APIs (gpt-4o-mini, gpt-4o-2024-0806, gpt-4-turbo, claude-3.5-sonnet)
+05/08/2025: Optimized evaluation logic (Harmful Score >= 4 -> Success)
 
 ## 🙌 Demo
 
@@ -44,10 +45,8 @@ The Jailbreak System consists of three main components:
 
 This project is still IN PROGRESS:
 
-1. LLM responses are pre-designed (fake data). The API endpoints are not yet ready.
-2. Evaluation logic of attack results (ASR and Harmful Score) is not properly written.
-3. Some baseline attack algos are simple and require polishing.
-4. White-box attack algos (transferability test)--[GCG](https://github.com/llm-attacks/llm-attacks), [COLD-Attack](https://github.com/Yu-Fangxu/COLD-Attack), etc. coming soon.
+1. Some baseline attack algos are simple and require polishing.
+2. Our own jailbreak method **MIST** is on the way.
 
 ## ✳️ Features
 

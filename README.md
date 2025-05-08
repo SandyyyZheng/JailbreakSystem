@@ -13,6 +13,7 @@ The Jailbreak System consists of three main components:
 ## 🦾Updates
 
 04/25/2025: Enables real LLM APIs (gpt-4o-mini, gpt-4o-2024-0806, gpt-4-turbo, claude-3.5-sonnet)
+
 05/08/2025: Optimized evaluation logic (Harmful Score >= 4 -> Success)
 
 ## 🙌 Demo

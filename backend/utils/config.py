@@ -4,4 +4,4 @@
 
 # 执行攻击时返回标准答案的概率 (0.0 - 1.0)
 # 例如：0.3 表示有30%的概率直接返回标准答案
-STANDARD_ANSWER_PROBABILITY = 0.5
+STANDARD_ANSWER_PROBABILITY = 0.1

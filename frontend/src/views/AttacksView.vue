@@ -81,93 +81,63 @@
       </div>
       
       <div class="form-group">
+        <label for="description">Description</label>
+        <Textarea id="description" v-model="attack.description" rows="3" placeholder="Enter description" class="w-full" />
+      </div>
+      
+      <div class="form-group">
         <label for="algorithm_type">Algorithm Type*</label>
-        <Dropdown id="algorithm_type" v-model="attack.algorithm_type" :options="algorithmTypes" 
-                 optionLabel="name" optionValue="value" placeholder="Select an algorithm type" 
+        <Dropdown id="algorithm_type" v-model="attack.algorithm_type" :options="algorithmTypes"
+                 optionLabel="name" optionValue="value" placeholder="Select algorithm type" class="w-full"
                  :class="{'p-invalid': submitted && !attack.algorithm_type}" />
         <small class="p-error" v-if="submitted && !attack.algorithm_type">Algorithm type is required.</small>
       </div>
       
-      <div class="form-group">
-        <label for="description">Description</label>
-        <Textarea id="description" v-model="attack.description" rows="5" />
-      </div>
-      
-      <div class="form-group" v-if="attack.algorithm_type === 'template_based'">
-        <label for="template_type">Template Type</label>
-        <Dropdown id="template_type" v-model="attack.parameters.template_type" :options="templateTypes" 
-                 optionLabel="name" optionValue="value" placeholder="Select a template type" />
-      </div>
-      
-      <div class="form-group" v-if="attack.algorithm_type === 'character_stuffing'">
-        <label for="char">Character</label>
-        <InputText id="char" v-model="attack.parameters.char" placeholder="Character to repeat" />
-        
-        <label for="num_chars" class="mt-3">Number of Characters</label>
-        <InputText id="num_chars" v-model.number="attack.parameters.num_chars" type="number" min="1" />
-      </div>
-      
       <div class="form-group" v-if="attack.algorithm_type === 'multi_language'">
-        <label for="languages">Language*</label>
-        <Dropdown id="language" v-model="attack.parameters.language" :options="languageOptions" 
-                 optionLabel="name" optionValue="value" placeholder="Select a language" 
-                 :class="{'p-invalid': submitted && !attack.parameters.language}" />
+        <label for="language">Language</label>
+        <Dropdown id="language" v-model="attack.parameters.language" :options="languageOptions"
+                 optionLabel="name" optionValue="value" placeholder="Select language" class="w-full" />
         <small class="p-error" v-if="submitted && !attack.parameters.language">Language is required.</small>
       </div>
       
-      <div class="form-group" v-if="attack.algorithm_type === 'token_limit'">
-        <label for="filler_text">Filler Text (Optional)</label>
-        <Textarea id="filler_text" v-model="attack.parameters.filler_text" rows="3" 
-                 placeholder="Leave empty to use default filler text" />
-        
-        <label for="repeat" class="mt-3">Repeat Count</label>
-        <InputText id="repeat" v-model.number="attack.parameters.repeat" type="number" min="1" />
-      </div>
-      
-      <!-- JSON Injection doesn't require additional parameters -->
-      <div class="form-group" v-if="attack.algorithm_type === 'json_injection'">
-        <div class="p-text-secondary">
-          <i class="pi pi-info-circle mr-2"></i>
-          JSON Injection attack doesn't require additional parameters.
-        </div>
-      </div>
-      
-      <!-- ASCII Art 参数设置 -->
       <div class="form-group" v-if="attack.algorithm_type === 'ascii_art'">
-        <label for="ascii_style">ASCII Art Style</label>
-        <Dropdown id="ascii_style" v-model="attack.parameters.style" :options="asciiArtStyleOptions" 
-                 optionLabel="name" optionValue="value" placeholder="Select an ASCII art style" />
-        
-        <div class="mt-3">
-          <label for="detect_sensitive" class="mr-2">Auto-detect Sensitive Words</label>
-          <InputSwitch id="detect_sensitive" v-model="attack.parameters.detect_sensitive" />
-          <small class="block mt-1">
-            When enabled, the system will automatically identify and mask sensitive words in the prompt.
-          </small>
+        <label for="style">ASCII Art Style</label>
+        <Dropdown id="style" v-model="attack.parameters.style" :options="asciiArtStyleOptions"
+                 optionLabel="name" optionValue="value" placeholder="Select style" class="w-full" />
+        <div class="p-field-checkbox mt-3">
+          <Checkbox id="detect_sensitive" v-model="attack.parameters.detect_sensitive" :binary="true" />
+          <label for="detect_sensitive" class="ml-2">Automatically detect sensitive words</label>
         </div>
       </div>
       
-      <!-- CipherChat密码学攻击参数设置 -->
       <div class="form-group" v-if="attack.algorithm_type === 'cipher'">
         <label for="cipher_type">Cipher Type</label>
-        <Dropdown id="cipher_type" v-model="attack.parameters.cipher_type" :options="cipherTypeOptions" 
-                 optionLabel="name" optionValue="value" placeholder="Select a cipher type" />
-        
-        <div class="mt-3">
-          <label for="use_demonstrations" class="mr-2">Use Demonstrations</label>
-          <InputSwitch id="use_demonstrations" v-model="attack.parameters.use_demonstrations" />
-          <small class="block mt-1">
-            When enabled, the system will include example demonstrations with the encoded content.
-          </small>
+        <Dropdown id="cipher_type" v-model="attack.parameters.cipher_type" :options="cipherTypeOptions"
+                 optionLabel="name" optionValue="value" placeholder="Select cipher type" class="w-full" />
+        <div class="p-field-checkbox mt-3">
+          <Checkbox id="use_demonstrations" v-model="attack.parameters.use_demonstrations" :binary="true" />
+          <label for="use_demonstrations" class="ml-2">Include decoding demonstrations</label>
         </div>
-        
-        <div class="mt-3">
+        <div class="form-group mt-3">
           <label for="system_prompt">Custom System Prompt (Optional)</label>
           <Textarea id="system_prompt" v-model="attack.parameters.system_prompt" rows="3" 
-                   placeholder="Leave empty to use default system prompt" />
-          <small class="block mt-1">
-            If provided, this will override the default system prompt for the selected cipher.
-          </small>
+                   placeholder="Enter custom system prompt" class="w-full" />
+        </div>
+      </div>
+      
+      <div class="form-group" v-if="attack.algorithm_type === 'mist'">
+        <label for="similarity_threshold">Similarity Threshold</label>
+        <InputNumber id="similarity_threshold" v-model="attack.parameters.similarity_threshold" 
+                     :min="0.5" :max="1.0" :step="0.05" :inputStyle="{ width: '100%' }" mode="decimal" 
+                     placeholder="Enter similarity threshold (0.5-1.0)" />
+        <small class="helper-text">Higher values maintain semantic meaning. Default: 0.85</small>
+        
+        <div class="mt-3">
+          <label for="max_queries">Maximum Queries</label>
+          <InputNumber id="max_queries" v-model="attack.parameters.max_queries" 
+                      :min="1" :max="100" :step="1" :inputStyle="{ width: '100%' }" 
+                      placeholder="Maximum number of queries" />
+          <small class="helper-text">Maximum number of model queries to try. Default: 50</small>
         </div>
       </div>
       
@@ -211,9 +181,14 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import { FilterMatchMode } from 'primevue/api';
 import { useToast } from 'primevue/usetoast';
+import InputNumber from 'primevue/inputnumber';
 
 export default {
   name: 'AttacksView',
+  
+  components: {
+    InputNumber
+  },
   
   setup() {
     const store = useStore();
@@ -246,14 +221,10 @@ export default {
     
     // Algorithm types
     const algorithmTypes = [
-      { name: 'Template Based', value: 'template_based' },
-      { name: 'Character Stuffing', value: 'character_stuffing' },
       { name: 'Multi-language', value: 'multi_language' },
-      { name: 'Token Limit', value: 'token_limit' },
-      { name: 'JSON Injection', value: 'json_injection' },
       { name: 'ASCII Art', value: 'ascii_art' },
       { name: 'Cipher', value: 'cipher' },
-      { name: 'Custom', value: 'custom' }
+      { name: 'MIST', value: 'mist' }
     ];
     
     const algorithmTypeOptions = computed(() => {
@@ -580,27 +551,10 @@ export default {
       }
       
       // Initialize parameters based on algorithm type
-      if (newType === 'template_based') {
-        attack.value.parameters = {
-          template_type: attack.value.parameters.template_type || ''
-        };
-      } else if (newType === 'character_stuffing') {
-        attack.value.parameters = {
-          char: attack.value.parameters.char || '.',
-          num_chars: attack.value.parameters.num_chars || 300
-        };
-      } else if (newType === 'multi_language') {
+      if (newType === 'multi_language') {
         attack.value.parameters = {
           language: attack.value.parameters.language || ''
         };
-      } else if (newType === 'token_limit') {
-        attack.value.parameters = {
-          filler_text: attack.value.parameters.filler_text || '',
-          repeat: attack.value.parameters.repeat || 10
-        };
-      } else if (newType === 'json_injection') {
-        // JSON Injection doesn't need parameters
-        attack.value.parameters = {};
       } else if (newType === 'ascii_art') {
         attack.value.parameters = {
           style: attack.value.parameters.style || 'block',
@@ -611,6 +565,11 @@ export default {
           cipher_type: attack.value.parameters.cipher_type || 'caesar',
           use_demonstrations: attack.value.parameters.use_demonstrations !== undefined ? attack.value.parameters.use_demonstrations : true,
           system_prompt: attack.value.parameters.system_prompt || ''
+        };
+      } else if (newType === 'mist') {
+        attack.value.parameters = {
+          similarity_threshold: attack.value.parameters.similarity_threshold || 0.85,
+          max_queries: attack.value.parameters.max_queries || 50
         };
       } else {
         // For other algorithm types, just ensure parameters is an empty object
@@ -774,6 +733,13 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.helper-text {
+  display: block;
+  color: #6c757d;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
 }
 
 @media screen and (min-width: 768px) {

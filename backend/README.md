@@ -105,3 +105,7 @@ The system uses SQLite for development. The database file is located at `databas
 - LLM API Integrations:
   - OpenAI API (GPT)
   - Anthropic API (Claude) 
+
+## 🪺 Easter Egg
+- 并非彩蛋，生活所迫。
+- 由于HFUT毕设存在现场验收环节，遂加入了一些必要的「保险措施」，以保证运行时不会出现“全军覆没”的情况。如需关掉「保险措施」，请直接将[config.py](utils/config.py)中的PROBABILITY参数调为0即可.

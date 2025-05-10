@@ -10,11 +10,13 @@ The Jailbreak System consists of three main components:
 2. **Backend**: A Flask API server handling the core logic and model interactions
 3. **Database**: Stores attack patterns, prompts, and results
 
-## 🦾Updates
+## 🦾 Updates
 
 04/25/2025: Enables real LLM APIs (gpt-4o-mini, gpt-4o-2024-0806, gpt-4-turbo, claude-3.5-sonnet)
 
 05/08/2025: Optimized evaluation logic (Harmful Score >= 4 -> Success)
+
+05/10/2025: Implemented our own algorithm **MIST**!
 
 ## 🙌 Demo
 
@@ -42,13 +44,6 @@ The Jailbreak System consists of three main components:
 
 ![StatsPage](demo/Stats-Page.png "StatsPage")
 
-## ⭕ TODOs
-
-This project is still IN PROGRESS:
-
-1. Some baseline attack algos are simple and require polishing.
-2. Our own jailbreak method **MIST** is on the way.
-
 ## ✳️ Features
 
 - Create and manage jailbreak attacks
@@ -60,15 +55,12 @@ This project is still IN PROGRESS:
 
 ## ✅ Supported Attack Algorithms
 
-The system includes several attack algorithms:
+The system incorporates the following algorithms:
 
-1. **Template-based**: Uses predefined templates to construct jailbreak prompts
-2. **Character Stuffing**: Adds repeated characters to confuse the model
-3. **Multi-language**: Uses foreign language instructions to bypass restrictions
-4. **Token Limit**: Adds filler text to push context limits
-5. **JSON Injection**: Uses JSON formatting to confuse the model
-6. **ASCII Art**: Encodes sensitive words using ASCII art, built upon [ACL24-ArtPrompt](https://github.com/uw-nsl/ArtPrompt)
-7. **Cipher**: Uses various cryptographic encoding methods to bypass content moderation, built upon [ICLR24-CipherChat](https://github.com/RobustNLP/CipherChat)
+1. **Multi-language**: Uses low-resource language to bypass restrictions. Please refer to [NeuraIPS'23Workshop-LRL](https://arxiv.org/pdf/2310.02446)
+2. **ASCII Art**: Encodes sensitive words using ASCII art, built upon [ACL'24-ArtPrompt](https://github.com/uw-nsl/ArtPrompt)
+3. **Cipher**: Uses various cryptographic encoding methods to bypass content moderation, built upon [ICLR'24-CipherChat](https://github.com/RobustNLP/CipherChat)
+4. **MIST**: Our own jailbreak algorithm!! Please refer to [mist_optimizer.py](backend/utils/mist_optimizer.py)
 
 ## 🛖 Structure
 
@@ -94,10 +86,11 @@ cd JailbreakSystem
 
 ## 📖 License
 
-This project is MIT-licensed.
+This project is under the [MIT license](LICENSE).
 
 ## 👻 Acknowledgments
 
-- OpenAI/Anthropic for providing the API
-- 2025 Graduation Design for HFUT
+- [Deepbricks](https://deepbricks.ai) for providing the APIs
+- 2025 Graduate Design for HFUT
+- Advised by Prof. Yuanzhi Yao. My deepest thanks to Dr. Yao for all the encouragement and support along the way 🥺
 - Relies **heavily** on [Cursor](https://www.cursor.com/) (mainly claude-3.5-sonnet & claude-3.7-sonnet) to construct framework and fix bugs. Kudos to AI🤖!

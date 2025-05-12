@@ -516,7 +516,7 @@ export default {
         toast.add({
           severity: 'info',
           summary: 'Response Received',
-          detail: `Response received from ${result.model}${result.is_standard_answer ? ' (Standard Answer)' : ''}`,
+          detail: `Response received from ${result.model}`,
           life: 3000
         })
       } catch (error) {
